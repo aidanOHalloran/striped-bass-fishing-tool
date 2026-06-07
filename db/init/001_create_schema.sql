@@ -1,164 +1,339 @@
 /*
-    If you already pasted the previous block, make sure the structure_type table
-    uses why_stripers_use_it, not why_strip ers_use_it.
+    Striped Bass Fishing Tool - Initial Database Schema
+    ---------------------------------------------------
+
+    Purpose:
+    - Creates the full relational foundation for the Blazor/PostgreSQL app.
+    - Organizes data into reference data, knowledge entries, fishing logs,
+      and reusable fishing patterns.
+
+    Docker/PostgreSQL note:
+    - Files in /docker-entrypoint-initdb.d only run automatically when the
+      PostgreSQL data volume is initialized for the first time.
+    - If you change this file and want Docker to rerun it from scratch:
+          docker compose down -v --remove-orphans
+          docker compose up -d
 */
 
-CREATE TABLE IF NOT EXISTS stripedbassfishingtool.technique (
-    technique_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+CREATE SCHEMA IF NOT EXISTS stripedbassfishingtool;
 
+SET search_path TO stripedbassfishingtool, public;
+
+
+/* ============================================================
+   REFERENCE TABLES
+   ============================================================ */
+
+/*
+    season
+    Developer:
+    A normalized lookup table for broad seasonal phases.
+
+    Fisherman:
+    Stripers often behave by seasonal phase more than by calendar date alone.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.season (
+    season_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
-
-    category TEXT,
-    /*
-        Examples:
-        - live bait
-        - artificial
-        - fly fishing
-        - trolling
-        - vertical
-        - topwater
-    */
-
     description TEXT,
-
-    when_to_use_notes TEXT,
-
-    common_mistakes_notes TEXT,
-
+    display_order INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+/*
+    month
+    Developer:
+    Fixed calendar lookup table. Uses month_id 1-12 instead of identity.
+
+    Fisherman:
+    Month is useful for browsing notes and historical patterns, even when
+    water temperature is the better behavioral trigger.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.month (
+    month_id INT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    short_name TEXT NOT NULL UNIQUE,
+    display_order INT NOT NULL,
+
+    CONSTRAINT ck_month_id CHECK (month_id BETWEEN 1 AND 12)
+);
+
+/*
+    water_temperature_band
+    Developer:
+    Turns raw water temperatures into queryable behavior bands.
+
+    Fisherman:
+    Water temperature affects striper depth, feeding, oxygen comfort,
+    handling stress, and seasonal movement.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.water_temperature_band (
+    water_temperature_band_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    min_temp_f NUMERIC(5,2),
+    max_temp_f NUMERIC(5,2),
+    description TEXT,
+    striper_behavior_notes TEXT,
+    ethical_caution_notes TEXT,
+    display_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    CONSTRAINT ck_water_temperature_band_range
+        CHECK (
+            min_temp_f IS NULL
+            OR max_temp_f IS NULL
+            OR min_temp_f <= max_temp_f
+        )
+);
+
+/*
+    water_clarity
+    Developer:
+    Normalizes visibility conditions for sessions and later filtering.
+
+    Fisherman:
+    Clarity changes lure color, leader choice, retrieve speed, and how far
+    fish can visually track bait.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.water_clarity (
+    water_clarity_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    visibility_min_ft NUMERIC(5,2),
+    visibility_max_ft NUMERIC(5,2),
+    description TEXT,
+    fishing_notes TEXT,
+    display_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    CONSTRAINT ck_water_clarity_range
+        CHECK (
+            visibility_min_ft IS NULL
+            OR visibility_max_ft IS NULL
+            OR visibility_min_ft <= visibility_max_ft
+        )
+);
+
+/*
+    weather_pattern
+    Developer:
+    Lookup table for weather categories associated with fishing sessions.
+
+    Fisherman:
+    Weather affects light, bait movement, current, runoff, pressure,
+    and feeding windows.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.weather_pattern (
+    weather_pattern_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    fishing_notes TEXT,
+    display_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+/*
+    moon_phase
+    Developer:
+    Normalizes moon phase for night-fishing logs.
+
+    Fisherman:
+    Moon phase can affect night visibility, dock-light concentration,
+    and bait movement.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.moon_phase (
+    moon_phase_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    illumination_min_percent NUMERIC(5,2),
+    illumination_max_percent NUMERIC(5,2),
+    description TEXT,
+    fishing_notes TEXT,
+    display_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    CONSTRAINT ck_moon_phase_illumination
+        CHECK (
+            illumination_min_percent IS NULL
+            OR illumination_max_percent IS NULL
+            OR illumination_min_percent <= illumination_max_percent
+        )
+);
+
+/*
+    wind_condition
+    Developer:
+    Stores reusable named wind categories while environment_snapshot can store
+    the exact measured wind speed/direction.
+
+    Fisherman:
+    Wind can activate points, push bait, add surface chop, and affect safety.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.wind_condition (
+    wind_condition_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    min_speed_mph NUMERIC(5,2),
+    max_speed_mph NUMERIC(5,2),
+    description TEXT,
+    fishing_notes TEXT,
+    display_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    CONSTRAINT ck_wind_condition_speed
+        CHECK (
+            min_speed_mph IS NULL
+            OR max_speed_mph IS NULL
+            OR min_speed_mph <= max_speed_mph
+        )
+);
+
+/*
+    light_condition
+    Developer:
+    Normalizes fishing light periods.
+
+    Fisherman:
+    Stripers often feed better during low-light periods such as dawn, dusk,
+    night, overcast conditions, and dock lights.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.light_condition (
+    light_condition_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    fishing_notes TEXT,
+    display_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+/*
+    forage_species
+    Developer:
+    Reference table for baitfish/forage used by knowledge entries,
+    sessions, catches, and patterns.
+
+    Fisherman:
+    Striper behavior is heavily tied to forage. Matching threadfin, gizzard
+    shad, herring, alewives, or other bait can define the whole approach.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.forage_species (
+    forage_species_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    common_name TEXT NOT NULL UNIQUE,
+    scientific_name TEXT,
+    description TEXT,
+    preferred_temperature_notes TEXT,
+    behavior_notes TEXT,
+    bait_handling_notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+/*
+    structure_type
+    Developer:
+    Reference table for structural features attached to knowledge,
+    locations, trips, and patterns.
+
+    Fisherman:
+    Points, humps, saddles, channels, docks, creek mouths, and tailraces
+    help explain where stripers are likely to position.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.structure_type (
+    structure_type_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    waterbody_context TEXT,
+    description TEXT,
+    why_stripers_use_it TEXT,
+    how_to_fish_notes TEXT,
+    display_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+/*
+    technique
+    Developer:
+    Stores high-level fishing methods.
+
+    Fisherman:
+    Technique describes the overall approach: topwater, swimbait, live bait,
+    trolling, spooning, fly retrieve, etc.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.technique (
+    technique_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    category TEXT,
+    description TEXT,
+    when_to_use_notes TEXT,
+    common_mistakes_notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 /*
     presentation
-    ------------
-
     Developer:
-    Separates the method of presenting a lure/bait from the lure or fly itself.
-    This prevents duplication such as "fluke slow retrieve", "fluke fast retrieve",
-    "clouser slow retrieve", etc.
+    Separates how something is fished from what lure/fly/bait is used.
 
     Fisherman:
-    The same lure can fish completely differently depending on retrieve,
-    depth, speed, countdown, drift, or trolling path.
+    The same lure can behave completely differently depending on retrieve,
+    depth, countdown, drift, speed, or pause cadence.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.presentation (
     presentation_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     name TEXT NOT NULL UNIQUE,
-
     description TEXT,
-
     retrieve_speed TEXT,
-    /*
-        Examples:
-        - deadstick
-        - slow
-        - medium
-        - fast
-        - burn
-        - erratic
-    */
-
     depth_zone TEXT,
-    /*
-        Examples:
-        - surface
-        - subsurface
-        - mid-column
-        - bottom
-        - suspended
-    */
-
     fishing_notes TEXT,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 
 /*
     lure_type
-    ---------
-
     Developer:
-    Stores artificial lure categories. Specific brands/models can be added later
-    in a separate lure table if desired.
+    Stores artificial lure categories. Specific brand/model inventory can be
+    added later as a separate table.
 
     Fisherman:
-    Lure type matters because stripers respond differently to topwater plugs,
-    swimbaits, spoons, bucktails, jerkbaits, umbrella rigs, etc.
+    Topwater plugs, flukes, swimbaits, spoons, bucktails, and umbrella rigs
+    serve different situations and depth zones.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.lure_type (
     lure_type_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     name TEXT NOT NULL UNIQUE,
-
     category TEXT,
-
     description TEXT,
-
     best_conditions_notes TEXT,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 
 /*
     fly_pattern
-    -----------
-
     Developer:
-    Stores fly-specific patterns separately from general lure types.
-    This lets the app support conventional and fly-fishing workflows cleanly.
+    Keeps fly-fishing patterns separate from general lure categories.
 
     Fisherman:
-    Fly pattern matters when matching baitfish profile, water clarity, sink rate,
-    and retrieve style. Examples: Clouser, Deceiver, Game Changer, Surf Candy.
+    Fly pattern matters for bait profile, size, sink behavior, and retrieve.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fly_pattern (
     fly_pattern_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     name TEXT NOT NULL UNIQUE,
-
     description TEXT,
-
     baitfish_imitation TEXT,
-
     typical_size_range TEXT,
-
     sink_behavior TEXT,
-
     best_conditions_notes TEXT,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-
 /*
     tag
-    ---
-
     Developer:
-    Flexible labeling system for knowledge entries and later UI filtering.
-    Tags allow lightweight categorization without creating a new table for
-    every possible idea.
+    Flexible lightweight labels for filtering and grouping notes.
 
     Fisherman:
-    Useful for concepts like:
-    - thermocline
-    - summer stress
-    - dock light
-    - schooling fish
-    - bait balls
-    - current seam
+    Useful for concepts that do not need their own table yet, like
+    thermocline, dock light, current, sonar, schooling, or ethics.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.tag (
     tag_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     name TEXT NOT NULL UNIQUE,
-
     description TEXT,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -167,63 +342,28 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.tag (
    KNOWLEDGE TABLES
    ============================================================ */
 
-
 /*
     knowledge_entry
-    ---------------
-
     Developer:
-    Stores structured fishing knowledge from books, personal notes, videos,
-    articles, or field observations that are not necessarily tied to one trip.
+    Stores reading notes, observations, book/video/article notes, and concepts.
 
     Fisherman:
-    This is where you capture concepts such as:
-    - how water temperature affects stripers
-    - how to fish a hump
-    - how to find forage
-    - what summer night patterns look like
+    This is where you capture reusable striper knowledge before connecting it
+    to seasons, temp bands, structures, techniques, forage, and tags.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.knowledge_entry (
     knowledge_entry_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     title TEXT NOT NULL,
-
     summary TEXT,
-
     body TEXT NOT NULL,
-
     source_type TEXT,
-    /*
-        Examples:
-        - book
-        - personal observation
-        - article
-        - video
-        - guide advice
-        - state agency report
-    */
-
     source_title TEXT,
-
     source_author TEXT,
-
     source_page_start INT,
-
     source_page_end INT,
-
     confidence_level INT NOT NULL DEFAULT 3,
-    /*
-        1 = weak/anecdotal
-        2 = possible
-        3 = generally useful
-        4 = strong
-        5 = repeatedly verified
-    */
-
     is_personal_observation BOOLEAN NOT NULL DEFAULT false,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-
     updated_at TIMESTAMPTZ,
 
     CONSTRAINT ck_knowledge_entry_confidence
@@ -237,169 +377,73 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.knowledge_entry (
         )
 );
 
-
-/*
-    knowledge_entry_season
-    ----------------------
-
-    Developer:
-    Many-to-many bridge between knowledge and seasons.
-
-    Fisherman:
-    A single concept can apply to multiple seasonal phases.
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.knowledge_entry_season (
     knowledge_entry_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.knowledge_entry(knowledge_entry_id)
         ON DELETE CASCADE,
-
     season_id INT NOT NULL
         REFERENCES stripedbassfishingtool.season(season_id)
         ON DELETE CASCADE,
-
     PRIMARY KEY (knowledge_entry_id, season_id)
 );
 
-
-/*
-    knowledge_entry_month
-    ---------------------
-
-    Developer:
-    Many-to-many bridge between knowledge and months.
-
-    Fisherman:
-    Some notes are calendar-specific, such as "November and December can
-    produce schooling fish on bait."
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.knowledge_entry_month (
     knowledge_entry_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.knowledge_entry(knowledge_entry_id)
         ON DELETE CASCADE,
-
     month_id INT NOT NULL
         REFERENCES stripedbassfishingtool.month(month_id)
         ON DELETE CASCADE,
-
     PRIMARY KEY (knowledge_entry_id, month_id)
 );
 
-
-/*
-    knowledge_entry_temperature_band
-    --------------------------------
-
-    Developer:
-    Links knowledge to one or more water temperature bands.
-
-    Fisherman:
-    This is more portable than month alone. A "60-68 degree pattern" may happen
-    in different months depending on the lake, year, and region.
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.knowledge_entry_temperature_band (
     knowledge_entry_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.knowledge_entry(knowledge_entry_id)
         ON DELETE CASCADE,
-
     water_temperature_band_id INT NOT NULL
         REFERENCES stripedbassfishingtool.water_temperature_band(water_temperature_band_id)
         ON DELETE CASCADE,
-
     PRIMARY KEY (knowledge_entry_id, water_temperature_band_id)
 );
 
-
-/*
-    knowledge_entry_structure_type
-    ------------------------------
-
-    Developer:
-    Links knowledge to physical fish-holding features.
-
-    Fisherman:
-    Allows querying all notes about points, humps, saddles, creek channels,
-    docks, dams, shoals, etc.
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.knowledge_entry_structure_type (
     knowledge_entry_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.knowledge_entry(knowledge_entry_id)
         ON DELETE CASCADE,
-
     structure_type_id INT NOT NULL
         REFERENCES stripedbassfishingtool.structure_type(structure_type_id)
         ON DELETE CASCADE,
-
     PRIMARY KEY (knowledge_entry_id, structure_type_id)
 );
 
-
-/*
-    knowledge_entry_technique
-    -------------------------
-
-    Developer:
-    Links knowledge to fishing methods.
-
-    Fisherman:
-    Allows the app to find all notes connected to trolling, live bait,
-    topwater, fly retrieve, countdown method, vertical jigging, etc.
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.knowledge_entry_technique (
     knowledge_entry_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.knowledge_entry(knowledge_entry_id)
         ON DELETE CASCADE,
-
     technique_id INT NOT NULL
         REFERENCES stripedbassfishingtool.technique(technique_id)
         ON DELETE CASCADE,
-
     PRIMARY KEY (knowledge_entry_id, technique_id)
 );
 
-
-/*
-    knowledge_entry_forage_species
-    ------------------------------
-
-    Developer:
-    Links knowledge to baitfish/forage.
-
-    Fisherman:
-    Allows notes like "threadfin on surface under lights" or
-    "large gizzard shad on main lake flats" to be queried cleanly.
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.knowledge_entry_forage_species (
     knowledge_entry_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.knowledge_entry(knowledge_entry_id)
         ON DELETE CASCADE,
-
     forage_species_id INT NOT NULL
         REFERENCES stripedbassfishingtool.forage_species(forage_species_id)
         ON DELETE CASCADE,
-
     PRIMARY KEY (knowledge_entry_id, forage_species_id)
 );
 
-
-/*
-    knowledge_entry_tag
-    -------------------
-
-    Developer:
-    Flexible many-to-many label bridge.
-
-    Fisherman:
-    Lets you group ideas that do not deserve their own formal table yet.
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.knowledge_entry_tag (
     knowledge_entry_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.knowledge_entry(knowledge_entry_id)
         ON DELETE CASCADE,
-
     tag_id INT NOT NULL
         REFERENCES stripedbassfishingtool.tag(tag_id)
         ON DELETE CASCADE,
-
     PRIMARY KEY (knowledge_entry_id, tag_id)
 );
 
@@ -408,101 +452,58 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.knowledge_entry_tag (
    FISHING LOG TABLES
    ============================================================ */
 
-
 /*
     body_of_water
-    -------------
-
     Developer:
-    Stores lakes, rivers, reservoirs, tailwaters, and coastal systems.
-    Trips and locations reference this table.
+    Stores lakes, reservoirs, rivers, tailwaters, and other fisheries.
 
     Fisherman:
-    Each lake or river has its own personality: forage base, stocking,
-    thermocline behavior, current, oxygen, ramps, and seasonal timing.
+    Each waterbody has its own forage, thermocline behavior, seasonal timing,
+    current/generation, access points, and local striper population.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.body_of_water (
     body_of_water_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     name TEXT NOT NULL,
-
     waterbody_type TEXT NOT NULL,
-    /*
-        Examples:
-        - reservoir
-        - river
-        - tailwater
-        - lake
-        - bay
-    */
-
     state TEXT,
-
     region TEXT,
-
     nearest_city TEXT,
-
     description TEXT,
-
     has_striped_bass BOOLEAN NOT NULL DEFAULT true,
-
     has_hybrid_striped_bass BOOLEAN NOT NULL DEFAULT false,
-
     primary_forage_notes TEXT,
-
     thermocline_notes TEXT,
-
     current_generation_notes TEXT,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT uq_body_of_water_name_state
         UNIQUE (name, state)
 );
 
-
 /*
     fishing_location
-    ----------------
-
     Developer:
-    Stores named spots within a body of water. This can be as specific or
-    general as you want. GPS fields are optional.
+    Stores named places within a body of water.
 
     Fisherman:
-    A location might be:
-    - main lake point
-    - dock light
-    - saddle near channel
-    - creek mouth
-    - hump
-    - dam tailrace
+    These can be exact spots or general areas: dock light, main-lake point,
+    creek mouth, hump, saddle, tailrace, etc.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_location (
     fishing_location_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     body_of_water_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.body_of_water(body_of_water_id)
         ON DELETE CASCADE,
-
     name TEXT NOT NULL,
-
     description TEXT,
-
     latitude NUMERIC(10,7),
-
     longitude NUMERIC(10,7),
-
     general_area TEXT,
-
     is_sensitive_spot BOOLEAN NOT NULL DEFAULT false,
-
     default_structure_type_id INT
         REFERENCES stripedbassfishingtool.structure_type(structure_type_id)
         ON DELETE SET NULL,
-
     notes TEXT,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT uq_fishing_location_body_name
@@ -515,58 +516,28 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_location (
         CHECK (longitude IS NULL OR longitude BETWEEN -180 AND 180)
 );
 
-
 /*
     fishing_trip
-    ------------
-
     Developer:
-    A trip is the larger outing. It can contain multiple sessions.
-    Example: one trip to Tim's Ford may include a dawn session, midday
-    scouting session, and night dock-light session.
+    A high-level outing that can contain one or more sessions.
 
     Fisherman:
-    This helps separate the overall outing from specific fishing windows.
+    A single trip can have different windows: dawn, midday scouting,
+    evening, or night dock-light fishing.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_trip (
     fishing_trip_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     body_of_water_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.body_of_water(body_of_water_id)
         ON DELETE RESTRICT,
-
     trip_name TEXT,
-
     trip_date DATE NOT NULL,
-
     start_time TIMESTAMPTZ,
-
     end_time TIMESTAMPTZ,
-
     purpose TEXT,
-    /*
-        Examples:
-        - scouting
-        - live bait trip
-        - fly fishing
-        - night dock light
-        - trolling
-        - learning electronics
-    */
-
     overall_success_rating INT,
-    /*
-        1 = poor
-        2 = slow
-        3 = okay
-        4 = good
-        5 = excellent
-    */
-
     summary TEXT,
-
     lessons_learned TEXT,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT ck_fishing_trip_success
@@ -583,52 +554,37 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_trip (
         )
 );
 
-
 /*
     fishing_session
-    ---------------
-
     Developer:
-    A session is a focused period within a trip. Most conditions, techniques,
-    catches, and observations should attach to a session.
+    A focused window within a trip.
 
     Fisherman:
-    The bite can change completely between dawn, midday, dusk, and night.
-    This lets you track each window separately.
+    Conditions and fish behavior can change completely between dawn,
+    midday, dusk, and night.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_session (
     fishing_session_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     fishing_trip_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.fishing_trip(fishing_trip_id)
         ON DELETE CASCADE,
-
     fishing_location_id BIGINT
         REFERENCES stripedbassfishingtool.fishing_location(fishing_location_id)
         ON DELETE SET NULL,
-
     session_name TEXT,
-
     start_time TIMESTAMPTZ,
-
     end_time TIMESTAMPTZ,
-
     light_condition_id INT
         REFERENCES stripedbassfishingtool.light_condition(light_condition_id)
         ON DELETE SET NULL,
-
     water_clarity_id INT
         REFERENCES stripedbassfishingtool.water_clarity(water_clarity_id)
         ON DELETE SET NULL,
-
     moon_phase_id INT
         REFERENCES stripedbassfishingtool.moon_phase(moon_phase_id)
         ON DELETE SET NULL,
-
     notes TEXT,
-
     success_rating INT,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT ck_fishing_session_success
@@ -645,88 +601,46 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_session (
         )
 );
 
-
 /*
     environment_snapshot
-    --------------------
-
     Developer:
-    Stores measured/observed environmental conditions for a fishing session.
-    This is intentionally separate from fishing_session so you can later support
-    multiple snapshots per session if desired.
+    Stores measured/observed conditions for a session.
 
     Fisherman:
-    This captures the actual "why" behind the bite:
-    water temp, air temp, wind, pressure, cloud cover, current, generation,
-    surface activity, bait presence, thermocline depth, etc.
+    This captures the context behind the bite: water temp, wind, weather,
+    thermocline, bait visibility, surface activity, current, etc.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.environment_snapshot (
     environment_snapshot_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     fishing_session_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.fishing_session(fishing_session_id)
         ON DELETE CASCADE,
-
     observed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-
     water_temperature_f NUMERIC(5,2),
-
     air_temperature_f NUMERIC(5,2),
-
     water_temperature_band_id INT
         REFERENCES stripedbassfishingtool.water_temperature_band(water_temperature_band_id)
         ON DELETE SET NULL,
-
     weather_pattern_id INT
         REFERENCES stripedbassfishingtool.weather_pattern(weather_pattern_id)
         ON DELETE SET NULL,
-
     wind_condition_id INT
         REFERENCES stripedbassfishingtool.wind_condition(wind_condition_id)
         ON DELETE SET NULL,
-
     wind_direction TEXT,
-
     wind_speed_mph NUMERIC(5,2),
-
     barometric_pressure_inhg NUMERIC(6,3),
-
     pressure_trend TEXT,
-    /*
-        Examples:
-        - rising
-        - falling
-        - steady
-    */
-
     cloud_cover_percent NUMERIC(5,2),
-
     precipitation_notes TEXT,
-
     current_flow_notes TEXT,
-
     generation_status TEXT,
-    /*
-        Examples:
-        - none
-        - light generation
-        - active generation
-        - spillway flow
-        - unknown
-    */
-
     thermocline_depth_ft NUMERIC(6,2),
-
     dissolved_oxygen_notes TEXT,
-
     bait_visible BOOLEAN,
-
     surface_activity BOOLEAN,
-
     bird_activity BOOLEAN,
-
     notes TEXT,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT ck_environment_cloud_cover
@@ -742,75 +656,45 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.environment_snapshot (
         )
 );
 
-
 /*
     catch_record
-    ------------
-
     Developer:
-    Stores individual fish catches. This allows later reporting by time,
-    location, bait, technique, size, release outcome, and conditions.
+    Stores each catch as an individual record.
 
     Fisherman:
-    This helps identify what actually worked, not just what seemed promising.
+    Lets you compare what actually caught fish against what was tried.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.catch_record (
     catch_record_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     fishing_session_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.fishing_session(fishing_session_id)
         ON DELETE CASCADE,
-
     caught_at TIMESTAMPTZ,
-
     species TEXT NOT NULL DEFAULT 'Striped Bass',
-
     length_inches NUMERIC(5,2),
-
     weight_lbs NUMERIC(6,2),
-
     estimated_weight BOOLEAN NOT NULL DEFAULT false,
-
     depth_caught_ft NUMERIC(6,2),
-
     fish_depth_observed_ft NUMERIC(6,2),
-
     bottom_depth_ft NUMERIC(6,2),
-
     technique_id INT
         REFERENCES stripedbassfishingtool.technique(technique_id)
         ON DELETE SET NULL,
-
     presentation_id INT
         REFERENCES stripedbassfishingtool.presentation(presentation_id)
         ON DELETE SET NULL,
-
     lure_type_id INT
         REFERENCES stripedbassfishingtool.lure_type(lure_type_id)
         ON DELETE SET NULL,
-
     fly_pattern_id INT
         REFERENCES stripedbassfishingtool.fly_pattern(fly_pattern_id)
         ON DELETE SET NULL,
-
     forage_species_id INT
         REFERENCES stripedbassfishingtool.forage_species(forage_species_id)
         ON DELETE SET NULL,
-
     was_released BOOLEAN,
-
     release_condition TEXT,
-    /*
-        Examples:
-        - strong
-        - slow
-        - stressed
-        - harvested
-        - unknown
-    */
-
     notes TEXT,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     CONSTRAINT ck_catch_length
@@ -820,49 +704,31 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.catch_record (
         CHECK (weight_lbs IS NULL OR weight_lbs > 0)
 );
 
-
 /*
     trip_technique_used
-    -------------------
-
     Developer:
-    Many-to-many bridge between a session and the techniques attempted.
-    This records what was tried, not only what caught fish.
+    Records all techniques tried during a session, successful or not.
 
     Fisherman:
-    Failed methods are valuable. Knowing "we tried topwater and it did not work"
-    is useful pattern intelligence.
+    Failed attempts are useful pattern data.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.trip_technique_used (
     fishing_session_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.fishing_session(fishing_session_id)
         ON DELETE CASCADE,
-
     technique_id INT NOT NULL
         REFERENCES stripedbassfishingtool.technique(technique_id)
         ON DELETE CASCADE,
-
     presentation_id INT
         REFERENCES stripedbassfishingtool.presentation(presentation_id)
         ON DELETE SET NULL,
-
     lure_type_id INT
         REFERENCES stripedbassfishingtool.lure_type(lure_type_id)
         ON DELETE SET NULL,
-
     fly_pattern_id INT
         REFERENCES stripedbassfishingtool.fly_pattern(fly_pattern_id)
         ON DELETE SET NULL,
-
     effectiveness_rating INT,
-    /*
-        1 = poor
-        2 = weak
-        3 = neutral
-        4 = good
-        5 = excellent
-    */
-
     notes TEXT,
 
     PRIMARY KEY (fishing_session_id, technique_id),
@@ -874,29 +740,23 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.trip_technique_used (
         )
 );
 
-
 /*
     trip_structure_fished
-    ---------------------
-
     Developer:
-    Many-to-many bridge between sessions and structures fished.
+    Records structures fished during a session.
 
     Fisherman:
-    You may fish several structures during one session:
-    point, saddle, hump, dock light, creek mouth, channel edge.
+    Lets you compare points, humps, saddles, docks, channels, and other
+    areas within actual fishing conditions.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.trip_structure_fished (
     fishing_session_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.fishing_session(fishing_session_id)
         ON DELETE CASCADE,
-
     structure_type_id INT NOT NULL
         REFERENCES stripedbassfishingtool.structure_type(structure_type_id)
         ON DELETE CASCADE,
-
     effectiveness_rating INT,
-
     notes TEXT,
 
     PRIMARY KEY (fishing_session_id, structure_type_id),
@@ -908,50 +768,25 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.trip_structure_fished (
         )
 );
 
-
 /*
     trip_forage_observed
-    --------------------
-
     Developer:
-    Many-to-many bridge between sessions and forage species observed.
+    Records forage observed during a session.
 
     Fisherman:
-    Seeing bait is one of the biggest clues. This table lets you log:
-    threadfin at surface, gizzard shad deep, bait balls on sonar, etc.
+    Seeing bait is one of the biggest clues. This stores bait species,
+    abundance, observation method, and depth.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.trip_forage_observed (
     fishing_session_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.fishing_session(fishing_session_id)
         ON DELETE CASCADE,
-
     forage_species_id INT NOT NULL
         REFERENCES stripedbassfishingtool.forage_species(forage_species_id)
         ON DELETE CASCADE,
-
     observation_method TEXT,
-    /*
-        Examples:
-        - visible surface
-        - sonar
-        - cast net
-        - birds
-        - dock light
-        - stomach contents
-    */
-
     estimated_abundance TEXT,
-    /*
-        Examples:
-        - none
-        - sparse
-        - moderate
-        - heavy
-        - massive schools
-    */
-
     depth_observed_ft NUMERIC(6,2),
-
     notes TEXT,
 
     PRIMARY KEY (fishing_session_id, forage_species_id)
@@ -962,48 +797,26 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.trip_forage_observed (
    RECOMMENDATION / PATTERN TABLES
    ============================================================ */
 
-
 /*
     fishing_pattern
-    ---------------
-
     Developer:
-    Represents a reusable rule/pattern that the app can surface later.
-    This is the bridge between static knowledge and field recommendations.
+    Stores reusable recommendation patterns independent of any one trip.
 
     Fisherman:
-    A pattern is something like:
-    - Summer low-light point bite
-    - Winter deep bait schools
-    - Fall schooling fish over flats
-    - Night dock light threadfin pattern
+    A pattern connects conditions to likely locations and tactics.
 */
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_pattern (
     fishing_pattern_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-
     name TEXT NOT NULL UNIQUE,
-
     summary TEXT NOT NULL,
-
     detailed_notes TEXT,
-
     confidence_level INT NOT NULL DEFAULT 3,
-
     priority_score INT NOT NULL DEFAULT 0,
-    /*
-        Higher score = more likely to show near the top in the app.
-    */
-
     recommended_depth_min_ft NUMERIC(6,2),
-
     recommended_depth_max_ft NUMERIC(6,2),
-
     recommended_time_of_day TEXT,
-
     safety_or_ethics_notes TEXT,
-
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-
     updated_at TIMESTAMPTZ,
 
     CONSTRAINT ck_fishing_pattern_confidence
@@ -1017,136 +830,64 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_pattern (
         )
 );
 
-
-/*
-    fishing_pattern_season
-    ----------------------
-
-    Developer:
-    Many-to-many relationship between patterns and seasons.
-
-    Fisherman:
-    A pattern may apply to more than one season, especially transitions.
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_pattern_season (
     fishing_pattern_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.fishing_pattern(fishing_pattern_id)
         ON DELETE CASCADE,
-
     season_id INT NOT NULL
         REFERENCES stripedbassfishingtool.season(season_id)
         ON DELETE CASCADE,
-
     PRIMARY KEY (fishing_pattern_id, season_id)
 );
 
-
-/*
-    fishing_pattern_temperature_band
-    --------------------------------
-
-    Developer:
-    Links patterns to water temperature bands.
-
-    Fisherman:
-    This lets the app recommend by actual water temperature rather than
-    calendar assumptions.
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_pattern_temperature_band (
     fishing_pattern_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.fishing_pattern(fishing_pattern_id)
         ON DELETE CASCADE,
-
     water_temperature_band_id INT NOT NULL
         REFERENCES stripedbassfishingtool.water_temperature_band(water_temperature_band_id)
         ON DELETE CASCADE,
-
     PRIMARY KEY (fishing_pattern_id, water_temperature_band_id)
 );
 
-
-/*
-    fishing_pattern_structure_type
-    ------------------------------
-
-    Developer:
-    Links patterns to fish-holding structures.
-
-    Fisherman:
-    This makes queries possible such as:
-    "Show me all warm-water patterns involving points and saddles."
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_pattern_structure_type (
     fishing_pattern_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.fishing_pattern(fishing_pattern_id)
         ON DELETE CASCADE,
-
     structure_type_id INT NOT NULL
         REFERENCES stripedbassfishingtool.structure_type(structure_type_id)
         ON DELETE CASCADE,
-
     PRIMARY KEY (fishing_pattern_id, structure_type_id)
 );
 
-
-/*
-    fishing_pattern_technique
-    -------------------------
-
-    Developer:
-    Links patterns to recommended techniques.
-
-    Fisherman:
-    A single pattern may support multiple methods:
-    topwater, live bait, trolling, fly retrieve, vertical jigging.
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_pattern_technique (
     fishing_pattern_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.fishing_pattern(fishing_pattern_id)
         ON DELETE CASCADE,
-
     technique_id INT NOT NULL
         REFERENCES stripedbassfishingtool.technique(technique_id)
         ON DELETE CASCADE,
-
     presentation_id INT
         REFERENCES stripedbassfishingtool.presentation(presentation_id)
         ON DELETE SET NULL,
-
     lure_type_id INT
         REFERENCES stripedbassfishingtool.lure_type(lure_type_id)
         ON DELETE SET NULL,
-
     fly_pattern_id INT
         REFERENCES stripedbassfishingtool.fly_pattern(fly_pattern_id)
         ON DELETE SET NULL,
-
     notes TEXT,
 
     PRIMARY KEY (fishing_pattern_id, technique_id)
 );
 
-
-/*
-    fishing_pattern_forage_species
-    ------------------------------
-
-    Developer:
-    Links patterns to forage species.
-
-    Fisherman:
-    Lets the app recommend tactics based on bait:
-    threadfin near surface, gizzard shad deeper, alewives over open water, etc.
-*/
 CREATE TABLE IF NOT EXISTS stripedbassfishingtool.fishing_pattern_forage_species (
     fishing_pattern_id BIGINT NOT NULL
         REFERENCES stripedbassfishingtool.fishing_pattern(fishing_pattern_id)
         ON DELETE CASCADE,
-
     forage_species_id INT NOT NULL
         REFERENCES stripedbassfishingtool.forage_species(forage_species_id)
         ON DELETE CASCADE,
-
     PRIMARY KEY (fishing_pattern_id, forage_species_id)
 );
 
@@ -1178,13 +919,6 @@ CREATE INDEX IF NOT EXISTS ix_fishing_location_body
    SEED DATA
    ============================================================ */
 
-
-/*
-    Seed reference data.
-    These inserts are written with ON CONFLICT DO NOTHING so they are safe
-    to run more than once.
-*/
-
 INSERT INTO stripedbassfishingtool.month
     (month_id, name, short_name, display_order)
 VALUES
@@ -1202,7 +936,6 @@ VALUES
     (12, 'December', 'Dec', 12)
 ON CONFLICT (month_id) DO NOTHING;
 
-
 INSERT INTO stripedbassfishingtool.season
     (name, description, display_order)
 VALUES
@@ -1213,7 +946,6 @@ VALUES
     ('Summer', 'Warm-water period. Oxygen, thermocline, low-light feeding windows, and fish stress become important.', 5),
     ('Fall', 'Cooling period. Bait movement and schooling activity often become more important.', 6)
 ON CONFLICT (name) DO NOTHING;
-
 
 INSERT INTO stripedbassfishingtool.water_temperature_band
     (name, min_temp_f, max_temp_f, description, striper_behavior_notes, ethical_caution_notes, display_order)
@@ -1226,7 +958,6 @@ VALUES
     ('Hot / Stress Range', 82.01, 100, 'Very warm water range.', 'Fish may be compressed into oxygen/temperature refuges and may be vulnerable to stress.', 'Consider avoiding catch-and-release striper fishing in hot water, especially deep fish.', 6)
 ON CONFLICT (name) DO NOTHING;
 
-
 INSERT INTO stripedbassfishingtool.water_clarity
     (name, visibility_min_ft, visibility_max_ft, description, fishing_notes, display_order)
 VALUES
@@ -1235,7 +966,6 @@ VALUES
     ('Clear', 3.01, 8, 'Good visibility.', 'Natural colors, longer casts, lighter leaders, and realistic profiles may help.', 3),
     ('Very Clear', 8.01, NULL, 'High visibility.', 'Fish may be spooky. Low light, depth, long casts, and subtle presentations can matter.', 4)
 ON CONFLICT (name) DO NOTHING;
-
 
 INSERT INTO stripedbassfishingtool.weather_pattern
     (name, description, fishing_notes, display_order)
@@ -1247,7 +977,6 @@ VALUES
     ('Overcast', 'Cloudy skies with reduced light.', 'May extend shallow or surface feeding windows.', 5),
     ('Bright Sun', 'Clear, bright conditions.', 'Fish may move deeper, tighter to structure, or feed during shorter windows.', 6)
 ON CONFLICT (name) DO NOTHING;
-
 
 INSERT INTO stripedbassfishingtool.moon_phase
     (name, illumination_min_percent, illumination_max_percent, description, fishing_notes, display_order)
@@ -1262,7 +991,6 @@ VALUES
     ('Waning Crescent', 10.01, 40, 'Decreasing toward new moon.', 'Can affect night visibility and dock-light concentration.', 8)
 ON CONFLICT (name) DO NOTHING;
 
-
 INSERT INTO stripedbassfishingtool.wind_condition
     (name, min_speed_mph, max_speed_mph, description, fishing_notes, display_order)
 VALUES
@@ -1272,7 +1000,6 @@ VALUES
     ('Strong Wind', 15.01, 25, 'Difficult wind.', 'Can concentrate bait but may make small-boat fishing unsafe.', 4),
     ('Unsafe Wind', 25.01, NULL, 'Potentially unsafe wind.', 'Avoid exposed water, especially in small craft.', 5)
 ON CONFLICT (name) DO NOTHING;
-
 
 INSERT INTO stripedbassfishingtool.light_condition
     (name, description, fishing_notes, display_order)
@@ -1286,7 +1013,6 @@ VALUES
     ('Overcast Daylight', 'Daylight with reduced sun penetration.', 'May extend feeding and shallow activity.', 7)
 ON CONFLICT (name) DO NOTHING;
 
-
 INSERT INTO stripedbassfishingtool.forage_species
     (common_name, scientific_name, description, preferred_temperature_notes, behavior_notes, bait_handling_notes)
 VALUES
@@ -1296,7 +1022,6 @@ VALUES
     ('Blueback Herring', 'Alosa aestivalis', 'Open-water herring species in some southeastern reservoirs.', 'Often linked to offshore and schooling patterns.', 'Can keep stripers roaming and suspended.', 'Not found in all regions; check local forage base.'),
     ('Skipjack Herring', 'Alosa chrysochloris', 'River/current-associated forage species.', 'Important in some river and tailwater systems.', 'Often found around current, dams, and river channels.', 'Not found in all regions; check local forage base.')
 ON CONFLICT (common_name) DO NOTHING;
-
 
 INSERT INTO stripedbassfishingtool.structure_type
     (name, waterbody_context, description, why_stripers_use_it, how_to_fish_notes, display_order)
@@ -1311,7 +1036,6 @@ VALUES
     ('Shoal', 'river', 'Shallow rocky or fast-water area.', 'Creates current breaks and feeding lanes.', 'Fish seams, pockets, and downstream edges.', 8)
 ON CONFLICT (name) DO NOTHING;
 
-
 INSERT INTO stripedbassfishingtool.technique
     (name, category, description, when_to_use_notes, common_mistakes_notes)
 VALUES
@@ -1323,7 +1047,6 @@ VALUES
     ('Fly Retrieve', 'fly fishing', 'Retrieving baitfish flies with strips, pauses, or countdowns.', 'Useful around feeding fish, lights, shallow points, and bait schools.', 'Not counting down long enough can keep the fly above fish.'),
     ('Countdown Method', 'artificial', 'Counting lure or fly sink time to target specific depth.', 'Useful for suspended fish and repeatable depth control.', 'Changing retrieve before reaching target depth causes inconsistency.')
 ON CONFLICT (name) DO NOTHING;
-
 
 INSERT INTO stripedbassfishingtool.presentation
     (name, description, retrieve_speed, depth_zone, fishing_notes)
@@ -1337,7 +1060,6 @@ VALUES
     ('Downline Live Bait', 'Live bait held at a controlled depth.', 'natural', 'suspended', 'Useful for deeper suspended stripers.')
 ON CONFLICT (name) DO NOTHING;
 
-
 INSERT INTO stripedbassfishingtool.lure_type
     (name, category, description, best_conditions_notes)
 VALUES
@@ -1349,7 +1071,6 @@ VALUES
     ('Umbrella Rig', 'trolling/casting', 'Multi-bait rig imitating a bait school.', 'Covering water and targeting fish feeding on schools of bait.')
 ON CONFLICT (name) DO NOTHING;
 
-
 INSERT INTO stripedbassfishingtool.fly_pattern
     (name, description, baitfish_imitation, typical_size_range, sink_behavior, best_conditions_notes)
 VALUES
@@ -1358,7 +1079,6 @@ VALUES
     ('Game Changer', 'Articulated baitfish fly with realistic movement.', 'shad, herring', '3-8 inches', 'usually neutral to slow sink', 'Good for visual feeders and clear water.'),
     ('Surf Candy', 'Slim epoxy/synthetic baitfish fly.', 'small baitfish', '2-5 inches', 'slow to moderate sink', 'Good for small bait and clear water.')
 ON CONFLICT (name) DO NOTHING;
-
 
 INSERT INTO stripedbassfishingtool.tag
     (name, description)
@@ -1373,11 +1093,6 @@ VALUES
     ('sonar', 'Electronics or fish-finder interpretation.'),
     ('fly-fishing', 'Fly-specific notes and tactics.')
 ON CONFLICT (name) DO NOTHING;
-
-
-/* ============================================================
-   OPTIONAL STARTER WATERBODY
-   ============================================================ */
 
 INSERT INTO stripedbassfishingtool.body_of_water
     (
