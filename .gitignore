@@ -55,3 +55,67 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# -------------------------
+# .NET build output
+# -------------------------
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+
+# -------------------------
+# User-specific IDE files
+# -------------------------
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# -------------------------
+# Rider / JetBrains
+# -------------------------
+.idea/
+
+# -------------------------
+# macOS
+# -------------------------
+.DS_Store
+
+# -------------------------
+# Logs
+# -------------------------
+*.log
+logs/
+
+# -------------------------
+# Generated tree/export files
+# -------------------------
+00Tree.html
+
+# -------------------------
+# Docker / local environment
+# -------------------------
+.env
+.env.*
+!.env.example
+
+# -------------------------
+# ASP.NET secrets/local certs
+# -------------------------
+secrets.json
+*.pfx
+*.p12
+
+# -------------------------
+# Node artifacts if Tailwind/npm is added later
+# -------------------------
+node_modules/
+dist/
+.npm/
