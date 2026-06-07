@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using StripedBassFishingTool.Web.Components;
+using StripedBassFishingTool.Web.Data;
 using StripedBassFishingTool.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -5,6 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+    options.UseNpgsql(connectionString);
+});
 
 var app = builder.Build();
 
