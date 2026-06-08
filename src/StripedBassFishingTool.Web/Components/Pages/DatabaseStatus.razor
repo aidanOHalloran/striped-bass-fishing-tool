@@ -1,0 +1,78 @@
+@page "/database-status"
+@using Microsoft.EntityFrameworkCore
+@using StripedBassFishingTool.Web.Data
+@inject IDbContextFactory<AppDbContext> DbContextFactory
+
+<PageTitle>Database Status</PageTitle>
+
+<h1>Database Status</h1>
+
+@if (_isLoading)
+{
+    <p>Checking database...</p>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Database check failed:</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+}
+else
+{
+    <div class="alert alert-success">
+        Database connection succeeded.
+    </div>
+
+    <p>
+        Knowledge entries:
+        <strong>@_knowledgeEntryCount</strong>
+    </p>
+
+    <p>
+        Seasons:
+        <strong>@_seasonCount</strong>
+    </p>
+
+    <p>
+        Water temperature bands:
+        <strong>@_waterTemperatureBandCount</strong>
+    </p>
+}
+
+@code {
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private int _knowledgeEntryCount;
+    private int _seasonCount;
+    private int _waterTemperatureBandCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var db = await DbContextFactory.CreateDbContextAsync();
+
+            _knowledgeEntryCount = await db.Database
+                .SqlQueryRaw<int>("SELECT COUNT(*)::int AS \"Value\" FROM stripedbassfishingtool.knowledge_entry")
+                .SingleAsync();
+
+            _seasonCount = await db.Database
+                .SqlQueryRaw<int>("SELECT COUNT(*)::int AS \"Value\" FROM stripedbassfishingtool.season")
+                .SingleAsync();
+
+            _waterTemperatureBandCount = await db.Database
+                .SqlQueryRaw<int>("SELECT COUNT(*)::int AS \"Value\" FROM stripedbassfishingtool.water_temperature_band")
+                .SingleAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
