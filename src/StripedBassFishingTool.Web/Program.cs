@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using StripedBassFishingTool.Web.Components;
 using StripedBassFishingTool.Web.Data;
 using StripedBassFishingTool.Web.Components;
+using StripedBassFishingTool.Web.Services.Knowledge;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,8 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 
     options.UseNpgsql(connectionString);
 });
+
+builder.Services.AddScoped<KnowledgeEntryService>();
 
 var app = builder.Build();
 

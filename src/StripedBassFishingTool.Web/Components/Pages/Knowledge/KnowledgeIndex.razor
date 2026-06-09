@@ -1,9 +1,172 @@
 @page "/knowledge"
+@using StripedBassFishingTool.Web.Services.Knowledge
+@using StripedBassFishingTool.Web.ViewModels.Knowledge
+@inject KnowledgeEntryService KnowledgeEntryService
 
 <PageTitle>Knowledge</PageTitle>
 
-<h1>Knowledge</h1>
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Knowledge Base</p>
+        <h1>Striped Bass Knowledge</h1>
+        <p class="text-muted page-intro">
+            Store reusable striped bass knowledge, book notes, observations, and source-based fishing concepts.
+        </p>
+    </div>
 
-<p class="text-muted">
-    Store reusable striped bass knowledge, book notes, observations, and source-based fishing concepts.
-</p>
+    <div class="page-actions">
+        <a class="btn btn-primary disabled" aria-disabled="true">
+            Add Entry Soon
+        </a>
+    </div>
+</section>
+
+@if (_isLoading)
+{
+    <div class="state-card">
+        <h2>Loading knowledge entries...</h2>
+        <p class="text-muted">Reading structured notes from PostgreSQL.</p>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Could not load knowledge entries.</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+}
+else if (_entries.Count == 0)
+{
+    <div class="state-card">
+        <h2>No knowledge entries yet</h2>
+        <p class="text-muted">
+            Seed a few notes in <code>db/seed/100_knowledge_entries_seed.sql</code>,
+            then run <code>make seed</code> or <code>make reset-db</code>.
+        </p>
+    </div>
+}
+else
+{
+    <section class="summary-grid">
+        <div class="summary-card">
+            <span class="summary-label">Entries</span>
+            <strong>@_entries.Count</strong>
+        </div>
+
+        <div class="summary-card">
+            <span class="summary-label">Personal Observations</span>
+            <strong>@_entries.Count(e => e.IsPersonalObservation)</strong>
+        </div>
+
+        <div class="summary-card">
+            <span class="summary-label">Tagged</span>
+            <strong>@_entries.Count(e => e.Tags.Count > 0)</strong>
+        </div>
+    </section>
+
+    <section class="knowledge-grid">
+        @foreach (var entry in _entries)
+        {
+            <article class="knowledge-card">
+                <div class="knowledge-card-header">
+                    <div>
+                        <h2>@entry.Title</h2>
+
+                        <p class="source-line">
+                            @entry.SourceLabel
+                            @if (!string.IsNullOrWhiteSpace(entry.PageLabel))
+                            {
+                                <span> · @entry.PageLabel</span>
+                            }
+                        </p>
+                    </div>
+
+                    <span class="confidence-pill confidence-@entry.ConfidenceLevel">
+                        @entry.ConfidenceLabel
+                    </span>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(entry.Summary))
+                {
+                    <p class="knowledge-summary">
+                        @entry.Summary
+                    </p>
+                }
+
+                <div class="metadata-section">
+                    @RenderChipGroup("Seasons", entry.Seasons)
+                    @RenderChipGroup("Water", entry.TemperatureBands)
+                    @RenderChipGroup("Structure", entry.Structures)
+                    @RenderChipGroup("Techniques", entry.Techniques)
+                    @RenderChipGroup("Forage", entry.ForageSpecies)
+                    @RenderChipGroup("Tags", entry.Tags)
+                </div>
+
+                <div class="knowledge-card-footer">
+                    @if (entry.IsPersonalObservation)
+                    {
+                        <span class="observation-badge">Personal observation</span>
+                    }
+
+                    <span class="created-date">
+                        Added @entry.CreatedAt.LocalDateTime.ToString("MMM d, yyyy")
+                    </span>
+                </div>
+            </article>
+        }
+    </section>
+}
+
+@code {
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private IReadOnlyList<KnowledgeEntryCardViewModel> _entries = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _entries = await KnowledgeEntryService.GetKnowledgeEntryCardsAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static RenderFragment RenderChipGroup(string label, IReadOnlyList<string> values) => builder =>
+    {
+        if (values.Count == 0)
+        {
+            return;
+        }
+
+        var sequence = 0;
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "chip-group");
+
+        builder.OpenElement(sequence++, "span");
+        builder.AddAttribute(sequence++, "class", "chip-label");
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "chips");
+
+        foreach (var value in values)
+        {
+            builder.OpenElement(sequence++, "span");
+            builder.AddAttribute(sequence++, "class", "chip");
+            builder.AddContent(sequence++, value);
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+}
