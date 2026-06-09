@@ -1,0 +1,234 @@
+@page "/knowledge/{KnowledgeEntryId:long}"
+@using StripedBassFishingTool.Web.Services.Knowledge
+@using StripedBassFishingTool.Web.ViewModels.Knowledge
+@inject KnowledgeEntryService KnowledgeEntryService
+
+<PageTitle>@(_entry?.Title ?? "Knowledge Entry")</PageTitle>
+
+@if (_isLoading)
+{
+    <div class="state-card">
+        <h2>Loading knowledge entry...</h2>
+        <p class="text-muted">Retrieving this structured fishing note from PostgreSQL.</p>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Could not load knowledge entry.</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+
+    <a class="btn btn-secondary" href="knowledge">Back to Knowledge</a>
+}
+else if (_entry is null)
+{
+    <div class="state-card">
+        <h2>Knowledge entry not found</h2>
+        <p class="text-muted">
+            This entry may have been deleted or the database may have been reset.
+        </p>
+
+        <a class="btn btn-secondary" href="knowledge">Back to Knowledge</a>
+    </div>
+}
+else
+{
+    <section class="detail-shell">
+        <div class="detail-main">
+            <a class="back-link" href="knowledge">← Back to Knowledge</a>
+
+            <article class="detail-card">
+                <header class="detail-header">
+                    <div>
+                        <p class="eyebrow">Knowledge Entry</p>
+                        <h1>@_entry.Title</h1>
+
+                        <p class="source-line detail-source">
+                            @_entry.SourceLabel
+                            @if (!string.IsNullOrWhiteSpace(_entry.PageLabel))
+                            {
+                                <span> · @_entry.PageLabel</span>
+                            }
+                        </p>
+                    </div>
+
+                    <span class="confidence-pill confidence-@_entry.ConfidenceLevel">
+                        @_entry.ConfidenceLabel
+                    </span>
+                </header>
+
+                @if (!string.IsNullOrWhiteSpace(_entry.Summary))
+                {
+                    <section class="detail-summary-panel">
+                        <h2>Summary</h2>
+                        <p>@_entry.Summary</p>
+                    </section>
+                }
+
+                <section class="detail-body">
+                    <h2>Notes</h2>
+
+                    @foreach (var paragraph in GetBodyParagraphs(_entry.Body))
+                    {
+                        <p>@paragraph</p>
+                    }
+                </section>
+            </article>
+        </div>
+
+        <aside class="detail-sidebar">
+            <section class="side-card">
+                <h2>Confidence</h2>
+
+                <div class="confidence-large confidence-@_entry.ConfidenceLevel">
+                    @_entry.ConfidenceLevel / 5
+                </div>
+
+                <p class="text-muted">
+                    @_entry.ConfidenceDescription
+                </p>
+            </section>
+
+            <section class="side-card">
+                <h2>Source</h2>
+
+                <dl class="detail-list">
+                    <div>
+                        <dt>Type</dt>
+                        <dd>@DisplayOrUnknown(_entry.SourceType)</dd>
+                    </div>
+
+                    <div>
+                        <dt>Title</dt>
+                        <dd>@DisplayOrUnknown(_entry.SourceTitle)</dd>
+                    </div>
+
+                    <div>
+                        <dt>Author</dt>
+                        <dd>@DisplayOrUnknown(_entry.SourceAuthor)</dd>
+                    </div>
+
+                    <div>
+                        <dt>Pages</dt>
+                        <dd>@DisplayOrUnknown(_entry.PageLabel)</dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="side-card">
+                <h2>Fishing Metadata</h2>
+
+                <div class="metadata-section detail-metadata">
+                    @RenderChipGroup("Seasons", _entry.Seasons)
+                    @RenderChipGroup("Water", _entry.TemperatureBands)
+                    @RenderChipGroup("Structure", _entry.Structures)
+                    @RenderChipGroup("Techniques", _entry.Techniques)
+                    @RenderChipGroup("Forage", _entry.ForageSpecies)
+                    @RenderChipGroup("Tags", _entry.Tags)
+                </div>
+            </section>
+
+            <section class="side-card">
+                <h2>Record Info</h2>
+
+                <dl class="detail-list">
+                    <div>
+                        <dt>Entry ID</dt>
+                        <dd>@_entry.KnowledgeEntryId</dd>
+                    </div>
+
+                    <div>
+                        <dt>Added</dt>
+                        <dd>@_entry.CreatedAt.LocalDateTime.ToString("MMM d, yyyy h:mm tt")</dd>
+                    </div>
+
+                    <div>
+                        <dt>Updated</dt>
+                        <dd>@(_entry.UpdatedAt?.LocalDateTime.ToString("MMM d, yyyy h:mm tt") ?? "Never")</dd>
+                    </div>
+
+                    <div>
+                        <dt>Observation</dt>
+                        <dd>@(_entry.IsPersonalObservation ? "Personal observation" : "Source-based note")</dd>
+                    </div>
+                </dl>
+            </section>
+        </aside>
+    </section>
+}
+
+@code {
+    [Parameter]
+    public long KnowledgeEntryId { get; set; }
+
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private KnowledgeEntryDetailViewModel? _entry;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _entry = await KnowledgeEntryService.GetKnowledgeEntryDetailAsync(KnowledgeEntryId);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static IEnumerable<string> GetBodyParagraphs(string body)
+    {
+        return body
+            .Split(["\r\n\r\n", "\n\n"], StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x));
+    }
+
+    private static string DisplayOrUnknown(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? "Unknown"
+            : value;
+    }
+
+    private static RenderFragment RenderChipGroup(string label, IReadOnlyList<string> values) => builder =>
+    {
+        if (values.Count == 0)
+        {
+            return;
+        }
+
+        var sequence = 0;
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "chip-group");
+
+        builder.OpenElement(sequence++, "span");
+        builder.AddAttribute(sequence++, "class", "chip-label");
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "chips");
+
+        foreach (var value in values)
+        {
+            builder.OpenElement(sequence++, "span");
+            builder.AddAttribute(sequence++, "class", "chip");
+            builder.AddContent(sequence++, value);
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+}

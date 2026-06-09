@@ -67,7 +67,7 @@ else
     <section class="knowledge-grid">
         @foreach (var entry in _entries)
         {
-            <article class="knowledge-card">
+            <a class="knowledge-card knowledge-card-link" href="@($"knowledge/{entry.KnowledgeEntryId}")">
                 <div class="knowledge-card-header">
                     <div>
                         <h2>@entry.Title</h2>
@@ -112,7 +112,7 @@ else
                         Added @entry.CreatedAt.LocalDateTime.ToString("MMM d, yyyy")
                     </span>
                 </div>
-            </article>
+            </a>
         }
     </section>
 }
