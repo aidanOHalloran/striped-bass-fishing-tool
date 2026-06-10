@@ -1,0 +1,214 @@
+@page "/reference/{ReferenceType}/new"
+@rendermode InteractiveServer
+@using Microsoft.Extensions.Options
+@using StripedBassFishingTool.Web.Options
+@using StripedBassFishingTool.Web.Services.Reference
+@using StripedBassFishingTool.Web.ViewModels.Reference
+@inject ReferenceDataService ReferenceDataService
+@inject NavigationManager NavigationManager
+@inject IOptions<DurableSeedOptions> DurableSeedOptions
+
+<PageTitle>@(_table is null ? "New Reference Record" : $"New {_table.DisplayName}")</PageTitle>
+
+@if (_table is null)
+{
+    <div class="state-card">
+        <h2>Unknown reference type</h2>
+        <p class="text-muted">No reference table is registered for <code>@ReferenceType</code>.</p>
+        <a class="btn btn-secondary" href="/reference">Back to Reference Data</a>
+    </div>
+}
+else
+{
+    <section class="page-header">
+        <div>
+            <a class="back-link" href="@($"/reference/{_table.ReferenceType}")">← Back to @_table.PluralDisplayName</a>
+            <p class="eyebrow">New Reference Record</p>
+            <h1>Add @_table.DisplayName</h1>
+            <p class="text-muted page-intro">
+                Add reusable reference data for knowledge entries, trips, patterns, and filters.
+
+                @if (DurableSeedOptions.Value.AppendOnCreate)
+                {
+                    <span>
+                        Saving also appends this record to <code>010_reference_seed.sql</code>
+                        so it survives database resets.
+                    </span>
+                }
+                else
+                {
+                    <span>
+                        Saving writes this record to PostgreSQL only.
+                    </span>
+                }
+            </p>
+        </div>
+    </section>
+
+    <div class="entry-form-shell">
+        <section class="entry-form-main">
+            <div class="form-card">
+                <h2>@_table.DisplayName Details</h2>
+
+                @foreach (var field in _table.Fields)
+                {
+                    <div class="form-field">
+                        <label for="@field.PropertyName">
+                            @field.Label
+                            @if (field.IsRequired)
+                            {
+                                <span class="required-marker">*</span>
+                            }
+                        </label>
+
+                        @if (field.IsTextArea)
+                        {
+                            <textarea id="@field.PropertyName"
+                                      class="form-control"
+                                      rows="4"
+                                      value="@GetValue(field.PropertyName)"
+                                      @oninput="args => SetValue(field.PropertyName, args.Value?.ToString())">
+                            </textarea>
+                        }
+                        else if (field.IsNumber)
+                        {
+                            <input id="@field.PropertyName"
+                                   class="form-control"
+                                   type="number"
+                                   value="@GetValue(field.PropertyName)"
+                                   @oninput="args => SetValue(field.PropertyName, args.Value?.ToString())" />
+                        }
+                        else
+                        {
+                            <input id="@field.PropertyName"
+                                   class="form-control"
+                                   type="text"
+                                   value="@GetValue(field.PropertyName)"
+                                   @oninput="args => SetValue(field.PropertyName, args.Value?.ToString())" />
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(field.HelpText))
+                        {
+                            <p class="field-help">@field.HelpText</p>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+
+        <aside class="entry-form-sidebar">
+            @if (DurableSeedOptions.Value.AppendOnCreate)
+            {
+                <div class="dev-mode-card">
+                    <strong>Development durability enabled</strong>
+                    <p>
+                        This reference record will also be appended to the reference seed SQL file.
+                    </p>
+                </div>
+            }
+
+            <div class="form-actions-card">
+                @if (_validationMessage is not null)
+                {
+                    <div class="alert alert-warning">
+                        <strong>Validation issue.</strong>
+                        <pre>@_validationMessage</pre>
+                    </div>
+                }
+
+                @if (_saveErrorMessage is not null)
+                {
+                    <div class="alert alert-danger">
+                        <strong>Save failed.</strong>
+                        <pre>@_saveErrorMessage</pre>
+                    </div>
+                }
+
+                <button class="btn btn-primary w-100" @onclick="HandleSaveAsync" disabled="@_isSaving">
+                    @(_isSaving ? "Saving..." : $"Save {_table.DisplayName}")
+                </button>
+
+                <a class="btn btn-outline-secondary w-100" href="@($"/reference/{_table.ReferenceType}")">
+                    Cancel
+                </a>
+            </div>
+        </aside>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string ReferenceType { get; set; } = string.Empty;
+
+    private ReferenceTableViewModel? _table;
+    private readonly Dictionary<string, string?> _values = [];
+    private bool _isSaving;
+    private string? _validationMessage;
+    private string? _saveErrorMessage;
+
+    protected override void OnParametersSet()
+    {
+        _table = ReferenceDataService.GetTableDefinition(ReferenceType);
+
+        if (_table is null)
+        {
+            return;
+        }
+
+        foreach (var field in _table.Fields)
+        {
+            _values.TryAdd(field.PropertyName, null);
+        }
+    }
+
+    private string? GetValue(string propertyName)
+    {
+        return _values.GetValueOrDefault(propertyName);
+    }
+
+    private void SetValue(string propertyName, string? value)
+    {
+        _values[propertyName] = value;
+    }
+
+    private async Task HandleSaveAsync()
+    {
+        if (_table is null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        _validationMessage = null;
+        _saveErrorMessage = null;
+
+        try
+        {
+            var missingFields = _table.Fields
+                .Where(x => x.IsRequired)
+                .Where(x => string.IsNullOrWhiteSpace(_values.GetValueOrDefault(x.PropertyName)))
+                .Select(x => x.Label)
+                .ToList();
+
+            if (missingFields.Count > 0)
+            {
+                _validationMessage = "Required fields missing: " + string.Join(", ", missingFields);
+                return;
+            }
+
+            await ReferenceDataService.CreateRecordAsync(
+                _table.ReferenceType,
+                _values);
+
+            NavigationManager.NavigateTo($"/reference/{_table.ReferenceType}");
+        }
+        catch (Exception ex)
+        {
+            _saveErrorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

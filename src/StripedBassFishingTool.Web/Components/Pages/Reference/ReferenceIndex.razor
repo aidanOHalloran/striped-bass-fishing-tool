@@ -1,9 +1,70 @@
 @page "/reference"
+@rendermode InteractiveServer
+@using StripedBassFishingTool.Web.Services.Reference
+@using StripedBassFishingTool.Web.ViewModels.Reference
+@inject ReferenceDataService ReferenceDataService
 
 <PageTitle>Reference Data</PageTitle>
 
-<h1>Reference Data</h1>
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Reference Data</p>
+        <h1>Fishing Reference Data</h1>
+        <p class="text-muted page-intro">
+            Manage reusable lookup data used by knowledge entries, trips, patterns, and filters.
+        </p>
+    </div>
+</section>
 
-<p class="text-muted">
-        Manage seasons, water temperature bands, clarity, forage species, structure types, techniques, and tags.
-</p>
+@if (_isLoading)
+{
+    <div class="state-card">
+        <h2>Loading reference tables...</h2>
+        <p class="text-muted">Counting records in PostgreSQL.</p>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Could not load reference data.</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+}
+else
+{
+    <section class="reference-grid">
+        @foreach (var table in _tables)
+        {
+            <a class="reference-card" href="@($"/reference/{table.ReferenceType}")">
+                <div>
+                    <h2>@table.PluralDisplayName</h2>
+                    <p>@table.Description</p>
+                </div>
+
+                <span class="reference-count">@table.RecordCount</span>
+            </a>
+        }
+    </section>
+}
+
+@code {
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private IReadOnlyList<ReferenceTableSummaryViewModel> _tables = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _tables = await ReferenceDataService.GetTableSummariesAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

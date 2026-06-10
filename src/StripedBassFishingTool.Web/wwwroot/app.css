@@ -755,3 +755,133 @@ h1:focus {
         grid-template-columns: 1fr;
     }
 }
+
+.reference-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.reference-card,
+.reference-record-card {
+    color: inherit;
+    text-decoration: none;
+    border: 1px solid #d9e2ec;
+    border-radius: 1.25rem;
+    background: white;
+    box-shadow: 0 0.75rem 1.5rem rgba(16, 42, 67, 0.06);
+}
+
+.reference-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem;
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.reference-card:hover {
+    color: inherit;
+    transform: translateY(-2px);
+    border-color: #829ab1;
+    box-shadow: 0 1rem 2rem rgba(16, 42, 67, 0.12);
+}
+
+.reference-card h2,
+.reference-record-card h2 {
+    margin: 0;
+    color: #102a43;
+    font-size: 1.15rem;
+    font-weight: 850;
+    letter-spacing: -0.02em;
+}
+
+.reference-card p,
+.reference-record-card p {
+    margin: 0.45rem 0 0;
+    color: #627d98;
+    line-height: 1.45;
+}
+
+.reference-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border-radius: 999px;
+    background: #f0f4f8;
+    color: #334e68;
+    font-weight: 900;
+}
+
+.reference-record-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.reference-record-card {
+    padding: 1.25rem;
+}
+
+.reference-record-card dl {
+    margin: 1rem 0 0;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.reference-record-card dl div {
+    display: grid;
+    grid-template-columns: 8rem 1fr;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f0f4f8;
+}
+
+.reference-record-card dt {
+    color: #829ab1;
+    font-size: 0.75rem;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.reference-record-card dd {
+    margin: 0;
+    color: #334e68;
+    font-weight: 650;
+}
+
+.required-marker {
+    color: #b42318;
+    font-weight: 900;
+}
+
+.field-help {
+    margin: 0.35rem 0 0;
+    color: #829ab1;
+    font-size: 0.85rem;
+}
+
+@media (max-width: 1100px) {
+    .reference-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .reference-record-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .reference-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .reference-record-card dl div {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+    }
+}

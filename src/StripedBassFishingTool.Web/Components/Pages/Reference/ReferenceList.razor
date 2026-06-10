@@ -1,0 +1,125 @@
+@page "/reference/{ReferenceType}"
+@rendermode InteractiveServer
+@using StripedBassFishingTool.Web.Services.Reference
+@using StripedBassFishingTool.Web.ViewModels.Reference
+@inject ReferenceDataService ReferenceDataService
+
+<PageTitle>@(_table?.PluralDisplayName ?? "Reference Data")</PageTitle>
+
+@if (_isLoading)
+{
+    <div class="state-card">
+        <h2>Loading reference data...</h2>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Could not load reference data.</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+
+    <a class="btn btn-secondary" href="/reference">Back to Reference Data</a>
+}
+else if (_table is null)
+{
+    <div class="state-card">
+        <h2>Unknown reference type</h2>
+        <p class="text-muted">No reference table is registered for <code>@ReferenceType</code>.</p>
+        <a class="btn btn-secondary" href="/reference">Back to Reference Data</a>
+    </div>
+}
+else
+{
+    <section class="page-header">
+        <div>
+            <a class="back-link" href="/reference">← Back to Reference Data</a>
+            <p class="eyebrow">Reference Data</p>
+            <h1>@_table.PluralDisplayName</h1>
+            <p class="text-muted page-intro">@_table.Description</p>
+        </div>
+
+        <div class="page-actions">
+            <a class="btn btn-primary" href="@($"/reference/{_table.ReferenceType}/new")">
+                Add @_table.DisplayName
+            </a>
+        </div>
+    </section>
+
+    @if (_records.Count == 0)
+    {
+        <div class="state-card">
+            <h2>No records yet</h2>
+            <p class="text-muted">
+                Add the first @_table.DisplayName.ToLowerInvariant() to make it available in dropdowns and filters.
+            </p>
+        </div>
+    }
+    else
+    {
+        <section class="reference-record-grid">
+            @foreach (var record in _records)
+            {
+                <article class="reference-record-card">
+                    <div>
+                        <h2>@record.PrimaryLabel</h2>
+
+                        @if (!string.IsNullOrWhiteSpace(record.SecondaryLabel))
+                        {
+                            <p>@record.SecondaryLabel</p>
+                        }
+                    </div>
+
+                    <dl>
+                        @foreach (var field in _table.Fields.Take(4))
+                        {
+                            if (record.Values.TryGetValue(field.ColumnName, out var value) &&
+                                !string.IsNullOrWhiteSpace(value) &&
+                                value != record.PrimaryLabel)
+                            {
+                                <div>
+                                    <dt>@field.Label</dt>
+                                    <dd>@value</dd>
+                                </div>
+                            }
+                        }
+                    </dl>
+                </article>
+            }
+        </section>
+    }
+}
+
+@code {
+    [Parameter]
+    public string ReferenceType { get; set; } = string.Empty;
+
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private ReferenceTableViewModel? _table;
+    private IReadOnlyList<ReferenceRecordViewModel> _records = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _table = ReferenceDataService.GetTableDefinition(ReferenceType);
+
+            if (_table is not null)
+            {
+                _records = await ReferenceDataService.GetRecordsAsync(ReferenceType);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

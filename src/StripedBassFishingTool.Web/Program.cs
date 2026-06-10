@@ -4,6 +4,7 @@ using StripedBassFishingTool.Web.Data;
 using StripedBassFishingTool.Web.Components;
 using StripedBassFishingTool.Web.Services.Knowledge;
 using StripedBassFishingTool.Web.Options;
+using StripedBassFishingTool.Web.Services.Reference;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,10 @@ builder.Services.Configure<DurableSeedOptions>(
 // Knowledge services
 builder.Services.AddScoped<KnowledgeEntryService>();
 builder.Services.AddScoped<KnowledgeEntrySeedWriter>();
+
+// Reference data servicesq
+builder.Services.AddSingleton<ReferenceTableRegistry>();
+builder.Services.AddScoped<ReferenceDataService>();
 
 var app = builder.Build();
 
