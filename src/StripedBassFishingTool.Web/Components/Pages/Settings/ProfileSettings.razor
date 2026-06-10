@@ -1,0 +1,216 @@
+@page "/settings/profile"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Forms
+@using StripedBassFishingTool.Web.Services.UserProfile
+@using StripedBassFishingTool.Web.ViewModels.UserProfile
+@inject UserProfileService UserProfileService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Profile Settings</PageTitle>
+
+<section class="page-header">
+    <div>
+        <a class="back-link" href="/">← Back to Dashboard</a>
+        <p class="eyebrow">Settings</p>
+        <h1>Profile Settings</h1>
+        <p class="text-muted page-intro">
+            Customize the personal profile used throughout the fishing tool.
+        </p>
+    </div>
+</section>
+
+@if (_isLoading)
+{
+    <div class="state-card">
+        <h2>Loading profile...</h2>
+        <p class="text-muted">Preparing your local app profile.</p>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Could not load profile.</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+}
+else
+{
+    <EditForm Model="_form"
+              OnValidSubmit="HandleValidSubmitAsync"
+              OnInvalidSubmit="HandleInvalidSubmit"
+              FormName="profile-settings-form">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="entry-form-shell">
+            <section class="entry-form-main">
+                <div class="form-card">
+                    <h2>Personal Info</h2>
+
+                    <div class="form-field">
+                        <label for="username">Display Name</label>
+                        <InputText id="username"
+                                   class="form-control"
+                                   @bind-Value="_form.Username" />
+                        <ValidationMessage For="() => _form.Username" />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="email">Email</label>
+                        <InputText id="email"
+                                   class="form-control"
+                                   @bind-Value="_form.Email" />
+                        <ValidationMessage For="() => _form.Email" />
+                    </div>
+                </div>
+
+                <div class="form-card profile-preview-card">
+                    <h2>Preview</h2>
+
+                    <div class="profile-preview">
+                        <div class="profile-avatar">
+                            @GetInitials(_form.Username)
+                        </div>
+
+                        <div>
+                            <p class="profile-preview-label">App profile</p>
+                            <h3>@DisplayUsername</h3>
+
+                            @if (!string.IsNullOrWhiteSpace(_form.Email))
+                            {
+                                <p>@_form.Email</p>
+                            }
+                            else
+                            {
+                                <p class="text-muted">No email set</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="entry-form-sidebar">
+                <div class="form-actions-card">
+                    @if (_validationDebugMessage is not null)
+                    {
+                        <div class="alert alert-warning">
+                            <strong>Validation issue.</strong>
+                            <pre>@_validationDebugMessage</pre>
+                        </div>
+                    }
+
+                    @if (_saveErrorMessage is not null)
+                    {
+                        <div class="alert alert-danger">
+                            <strong>Save failed.</strong>
+                            <pre>@_saveErrorMessage</pre>
+                        </div>
+                    }
+
+                    @if (_saveSucceeded)
+                    {
+                        <div class="alert alert-success">
+                            Profile updated.
+                        </div>
+                    }
+
+                    <button type="submit" class="btn btn-primary w-100" disabled="@_isSaving">
+                        @(_isSaving ? "Saving..." : "Save Profile")
+                    </button>
+
+                    <a class="btn btn-outline-secondary w-100" href="/">
+                        Cancel
+                    </a>
+                </div>
+            </aside>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private bool _saveSucceeded;
+
+    private string? _errorMessage;
+    private string? _saveErrorMessage;
+    private string? _validationDebugMessage;
+
+    private UserProfileEditViewModel _form = new();
+
+    private string DisplayUsername =>
+        string.IsNullOrWhiteSpace(_form.Username)
+            ? "Angler"
+            : _form.Username;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _form = await UserProfileService.GetOrCreateProfileAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleValidSubmitAsync()
+    {
+        _isSaving = true;
+        _saveSucceeded = false;
+        _saveErrorMessage = null;
+        _validationDebugMessage = null;
+
+        try
+        {
+            await UserProfileService.UpdateProfileAsync(_form);
+            _saveSucceeded = true;
+
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            _saveErrorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void HandleInvalidSubmit(EditContext editContext)
+    {
+        var validationMessages = editContext
+            .GetValidationMessages()
+            .ToList();
+
+        _validationDebugMessage = validationMessages.Count == 0
+            ? "The form is invalid, but no validation messages were returned."
+            : string.Join(Environment.NewLine, validationMessages);
+    }
+
+    private static string GetInitials(string? username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return "A";
+        }
+
+        var parts = username
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Take(2)
+            .ToList();
+
+        if (parts.Count == 0)
+        {
+            return "A";
+        }
+
+        return string.Concat(parts.Select(x => char.ToUpperInvariant(x[0])));
+    }
+}

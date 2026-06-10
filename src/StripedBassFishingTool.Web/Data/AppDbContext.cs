@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using StripedBassFishingTool.Web.Models.Knowledge;
 using StripedBassFishingTool.Web.Models.Reference;
+using StripedBassFishingTool.Web.Models.UserProfile;
 
 namespace StripedBassFishingTool.Web.Data;
 
@@ -11,6 +12,7 @@ public sealed class AppDbContext : DbContext
     {
     }
 
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<KnowledgeEntry> KnowledgeEntries => Set<KnowledgeEntry>();
 
     public DbSet<Tag> Tags => Set<Tag>();
@@ -31,11 +33,37 @@ public sealed class AppDbContext : DbContext
     {
         modelBuilder.HasDefaultSchema("stripedbassfishingtool");
 
+        ConfigureUserProfile(modelBuilder);
         ConfigureKnowledgeEntry(modelBuilder);
         ConfigureReferenceTables(modelBuilder);
         ConfigureKnowledgeRelationships(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
+    }
+
+    private void ConfigureUserProfile(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<UserProfile>(entity =>
+        {
+            entity.ToTable("user_profile");
+
+            entity.HasKey(e => e.UserProfileId);
+
+            entity.Property(e => e.UserProfileId)
+                .HasColumnName("user_profile_id");
+
+            entity.Property(e => e.Username)
+                .HasColumnName("username");
+
+            entity.Property(e => e.Email)
+                .HasColumnName("email");
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at");
+        });
     }
 
     private static void ConfigureKnowledgeEntry(ModelBuilder modelBuilder)

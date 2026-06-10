@@ -25,6 +25,28 @@ SET search_path TO stripedbassfishingtool, public;
    ============================================================ */
 
 /*
+    user_profile
+    Developer:
+    A normalized lookup table for user profiles.
+
+    Fisherman:
+    If multiple people are logging trips and sharing knowledge, this table
+    can help track who observed what, and let you filter by your own notes vs.
+*/
+CREATE TABLE IF NOT EXISTS stripedbassfishingtool.user_profile (
+    user_profile_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- add placeholder user for now to avoid nulls in created_by fields
+INSERT INTO stripedbassfishingtool.user_profile (username, email)
+VALUES ('default_user', 'default_user@example.com');
+
+
+/*
     season
     Developer:
     A normalized lookup table for broad seasonal phases.

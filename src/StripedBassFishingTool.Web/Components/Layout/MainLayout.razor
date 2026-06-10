@@ -1,4 +1,7 @@
 ﻿@inherits LayoutComponentBase
+@using StripedBassFishingTool.Web.Services.UserProfile
+@using StripedBassFishingTool.Web.ViewModels.UserProfile
+@inject UserProfileService UserProfileService
 
 <div class="page">
     <div class="sidebar">
@@ -6,8 +9,21 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        <div class="top-row px-4 app-top-row">
+            @if (_profile is not null)
+            {
+                <div class="profile-summary">
+                    <span class="profile-greeting">Welcome back,</span>
+                    <strong>@_profile.Username</strong>
+                </div>
+            }
+
+            <a class="settings-link"
+               href="settings/profile"
+               title="Edit profile settings"
+               aria-label="Edit profile settings">
+                ⚙
+            </a>
         </div>
 
         <article class="content px-4">
@@ -21,3 +37,12 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private UserProfileEditViewModel? _profile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _profile = await UserProfileService.GetOrCreateProfileAsync();
+    }
+}

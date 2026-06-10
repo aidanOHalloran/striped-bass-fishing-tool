@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using StripedBassFishingTool.Web.Components;
 using StripedBassFishingTool.Web.Data;
 using StripedBassFishingTool.Web.Components;
+using StripedBassFishingTool.Web.Services.UserProfile;
 using StripedBassFishingTool.Web.Services.Knowledge;
 using StripedBassFishingTool.Web.Options;
 using StripedBassFishingTool.Web.Services.Reference;
@@ -24,6 +25,9 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 // user options
 builder.Services.Configure<DurableSeedOptions>(
     builder.Configuration.GetSection("DurableSeed"));
+
+builder.Services.AddScoped<UserProfileService>();
+
 
 // Knowledge services
 builder.Services.AddScoped<KnowledgeEntryService>();

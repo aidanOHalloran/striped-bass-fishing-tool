@@ -885,3 +885,94 @@ h1:focus {
         gap: 0.15rem;
     }
 }
+
+.app-top-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+}
+
+.profile-summary {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    color: #486581;
+    font-size: 0.95rem;
+}
+
+.profile-greeting {
+    color: #829ab1;
+}
+
+.profile-summary strong {
+    color: #102a43;
+    font-weight: 850;
+}
+
+.settings-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.35rem;
+    height: 2.35rem;
+    border: 1px solid #d9e2ec;
+    border-radius: 999px;
+    background: white;
+    color: #334e68;
+    text-decoration: none;
+    font-size: 1.15rem;
+    box-shadow: 0 0.5rem 1rem rgba(16, 42, 67, 0.06);
+}
+
+.settings-link:hover {
+    color: #102a43;
+    border-color: #829ab1;
+    transform: translateY(-1px);
+    box-shadow: 0 0.75rem 1.5rem rgba(16, 42, 67, 0.12);
+}
+
+.profile-preview-card {
+    overflow: hidden;
+}
+
+.profile-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.profile-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 4.25rem;
+    height: 4.25rem;
+    border-radius: 1.25rem;
+    background: #f0f4f8;
+    color: #102a43;
+    font-size: 1.4rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+}
+
+.profile-preview-label {
+    margin: 0 0 0.15rem;
+    color: #829ab1;
+    font-size: 0.75rem;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.profile-preview h3 {
+    margin: 0;
+    color: #102a43;
+    font-size: 1.5rem;
+    font-weight: 850;
+    letter-spacing: -0.04em;
+}
+
+.profile-preview p {
+    margin: 0.2rem 0 0;
+}
