@@ -30,6 +30,8 @@ public sealed class KnowledgeEntry
 
     public ICollection<KnowledgeEntryTag> KnowledgeEntryTags { get; set; } = [];
 
+    public ICollection<KnowledgeEntryMonth> KnowledgeEntryMonths { get; set; } = [];
+
     public ICollection<KnowledgeEntrySeason> KnowledgeEntrySeasons { get; set; } = [];
 
     public ICollection<KnowledgeEntryTemperatureBand> KnowledgeEntryTemperatureBands { get; set; } = [];

@@ -1,0 +1,297 @@
+@page "/knowledge/new"
+@using Microsoft.AspNetCore.Components.Forms
+@using StripedBassFishingTool.Web.Services.Knowledge
+@using StripedBassFishingTool.Web.ViewModels.Knowledge
+@inject KnowledgeEntryService KnowledgeEntryService
+@inject NavigationManager NavigationManager
+@inject KnowledgeEntrySeedWriter KnowledgeEntrySeedWriter
+@using Microsoft.Extensions.Options
+@using StripedBassFishingTool.Web.Options
+@inject IOptions<DurableSeedOptions> DurableSeedOptions
+
+<PageTitle>New Knowledge Entry</PageTitle>
+
+<section class="page-header">
+    <div>
+        <a class="back-link" href="knowledge">← Back to Knowledge</a>
+        <p class="eyebrow">New Knowledge Entry</p>
+        <h1>Add Reading Note</h1>
+        <p class="text-muted page-intro">
+            Capture a reusable striped bass concept from a book, article, video, guide tip,
+            or personal observation.
+
+            @if (DurableSeedOptions.Value.AppendOnCreate)
+            {
+                <span>
+                    Saving this entry writes it to PostgreSQL and appends it to the durable SQL seed file
+                    so it survives database resets.
+                </span>
+            }
+            else
+            {
+                <span>
+                    Saving this entry writes it to PostgreSQL.
+                </span>
+            }
+        </p>
+    </div>
+</section>
+
+@if (_isLoading)
+{
+    <div class="state-card">
+        <h2>Loading form...</h2>
+        <p class="text-muted">Loading seasons, tags, techniques, forage, and structure options.</p>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Could not prepare the form.</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+}
+else
+{
+    <EditForm Model="_form" OnValidSubmit="HandleValidSubmitAsync" FormName="knowledge-create-form">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="entry-form-shell">
+            <section class="entry-form-main">
+                <div class="form-card">
+                    <h2>Core Note</h2>
+
+                    <div class="form-field">
+                        <label for="title">Title</label>
+                        <InputText id="title" class="form-control" @bind-Value="_form.Title" />
+                        <ValidationMessage For="() => _form.Title" />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="summary">Summary</label>
+                        <InputTextArea id="summary" class="form-control" rows="3" @bind-Value="_form.Summary" />
+                        <ValidationMessage For="() => _form.Summary" />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="body">Full Note</label>
+                        <InputTextArea id="body" class="form-control note-body-input" rows="12" @bind-Value="_form.Body" />
+                        <ValidationMessage For="() => _form.Body" />
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <h2>Source</h2>
+
+                    <div class="form-grid two-column">
+                        <div class="form-field">
+                            <label for="sourceType">Source Type</label>
+                            <InputText id="sourceType" class="form-control" placeholder="book, article, video, personal observation" @bind-Value="_form.SourceType" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="sourceTitle">Source Title</label>
+                            <InputText id="sourceTitle" class="form-control" @bind-Value="_form.SourceTitle" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="sourceAuthor">Source Author</label>
+                            <InputText id="sourceAuthor" class="form-control" @bind-Value="_form.SourceAuthor" />
+                        </div>
+
+                        <div class="form-field page-range-fields">
+                            <div>
+                                <label for="pageStart">Page Start</label>
+                                <InputNumber id="pageStart" class="form-control" @bind-Value="_form.SourcePageStart" />
+                            </div>
+
+                            <div>
+                                <label for="pageEnd">Page End</label>
+                                <InputNumber id="pageEnd" class="form-control" @bind-Value="_form.SourcePageEnd" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="entry-form-sidebar">
+                <div class="form-card">
+                    <h2>Confidence</h2>
+
+                    <div class="form-field">
+                        <label for="confidence">Confidence Level</label>
+                        <InputSelect id="confidence" class="form-select" @bind-Value="_form.ConfidenceLevel">
+                            <option value="1">1 - Weak / Anecdotal</option>
+                            <option value="2">2 - Possible</option>
+                            <option value="3">3 - Generally Useful</option>
+                            <option value="4">4 - Strong</option>
+                            <option value="5">5 - Repeatedly Verified</option>
+                        </InputSelect>
+                    </div>
+
+                    <label class="checkbox-row">
+                        <InputCheckbox @bind-Value="_form.IsPersonalObservation" />
+                        <span>Personal observation</span>
+                    </label>
+                </div>
+
+                <div class="form-card">
+                    <h2>Fishing Metadata</h2>
+
+                    @RenderCheckboxGroup("Seasons", _lookups.Seasons, _form.SelectedSeasonIds)
+                    @RenderCheckboxGroup("Months", _lookups.Months, _form.SelectedMonthIds)
+                    @RenderCheckboxGroup("Water Temperature", _lookups.WaterTemperatureBands, _form.SelectedWaterTemperatureBandIds)
+                    @RenderCheckboxGroup("Structure", _lookups.StructureTypes, _form.SelectedStructureTypeIds)
+                    @RenderCheckboxGroup("Techniques", _lookups.Techniques, _form.SelectedTechniqueIds)
+                    @RenderCheckboxGroup("Forage", _lookups.ForageSpecies, _form.SelectedForageSpeciesIds)
+                    @RenderCheckboxGroup("Tags", _lookups.Tags, _form.SelectedTagIds)
+                </div>
+
+                <div class="form-actions-card">
+                    @if (_saveErrorMessage is not null)
+                    {
+                        <div class="alert alert-danger">
+                            <strong>Save failed.</strong>
+                            <pre>@_saveErrorMessage</pre>
+                        </div>
+                    }
+
+                    <button type="submit" class="btn btn-primary w-100" disabled="@_isSaving">
+                        @(_isSaving ? "Saving..." : "Save Knowledge Entry")
+                    </button>
+
+                    <a class="btn btn-outline-secondary w-100" href="knowledge">
+                        Cancel
+                    </a>
+                </div>
+            </aside>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _errorMessage;
+    private string? _saveErrorMessage;
+    private DurableSeedAppendResult? _seedAppendResult;
+
+    private KnowledgeEntryFormViewModel _form = new();
+    private KnowledgeEntryLookupViewModel _lookups = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _lookups = await KnowledgeEntryService.GetCreateLookupsAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleValidSubmitAsync()
+    {
+        _isSaving = true;
+        _saveErrorMessage = null;
+        _seedAppendResult = null;
+
+        try
+        {
+            var newId = await KnowledgeEntryService.CreateKnowledgeEntryAsync(_form);
+
+            _seedAppendResult = await KnowledgeEntrySeedWriter.AppendKnowledgeEntryAsync(
+                _form,
+                _lookups);
+
+            if (_seedAppendResult.ErrorMessage is not null)
+            {
+                _saveErrorMessage =
+                    "The entry was saved to the database, but it could not be appended to the durable SQL seed file. " +
+                    _seedAppendResult.ErrorMessage;
+
+                return;
+            }
+
+            NavigationManager.NavigateTo($"/knowledge/{newId}");
+        }
+        catch (Exception ex)
+        {
+            _saveErrorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private static RenderFragment RenderCheckboxGroup(
+        string label,
+        IReadOnlyList<LookupOptionViewModel> options,
+        List<int> selectedIds) => builder =>
+    {
+        if (options.Count == 0)
+        {
+            return;
+        }
+
+        var sequence = 0;
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "checkbox-group");
+
+        builder.OpenElement(sequence++, "h3");
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "checkbox-options");
+
+        foreach (var option in options)
+        {
+            builder.OpenElement(sequence++, "label");
+            builder.AddAttribute(sequence++, "class", "checkbox-pill");
+
+            builder.OpenElement(sequence++, "input");
+            builder.AddAttribute(sequence++, "type", "checkbox");
+            builder.AddAttribute(sequence++, "checked", selectedIds.Contains(option.Id));
+            builder.AddAttribute(
+                sequence++,
+                "onchange",
+                EventCallback.Factory.Create<ChangeEventArgs>(
+                    selectedIds,
+                    args =>
+                    {
+                        var isChecked = args.Value is bool boolValue && boolValue;
+
+                        if (isChecked)
+                        {
+                            if (!selectedIds.Contains(option.Id))
+                            {
+                                selectedIds.Add(option.Id);
+                            }
+                        }
+                        else
+                        {
+                            selectedIds.Remove(option.Id);
+                        }
+                    }));
+            builder.CloseElement();
+
+            builder.OpenElement(sequence++, "span");
+            builder.AddContent(sequence++, option.Name);
+            builder.CloseElement();
+
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+}

@@ -3,6 +3,7 @@ using StripedBassFishingTool.Web.Components;
 using StripedBassFishingTool.Web.Data;
 using StripedBassFishingTool.Web.Components;
 using StripedBassFishingTool.Web.Services.Knowledge;
+using StripedBassFishingTool.Web.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +18,15 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseNpgsql(connectionString);
 });
 
+// register application services
+
+// user options
+builder.Services.Configure<DurableSeedOptions>(
+    builder.Configuration.GetSection("DurableSeed"));
+
+// Knowledge services
 builder.Services.AddScoped<KnowledgeEntryService>();
+builder.Services.AddScoped<KnowledgeEntrySeedWriter>();
 
 var app = builder.Build();
 

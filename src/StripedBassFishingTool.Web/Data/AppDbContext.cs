@@ -15,6 +15,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<Tag> Tags => Set<Tag>();
 
+    public DbSet<Month> Months => Set<Month>();
+
     public DbSet<Season> Seasons => Set<Season>();
 
     public DbSet<WaterTemperatureBand> WaterTemperatureBands => Set<WaterTemperatureBand>();
@@ -97,6 +99,18 @@ public sealed class AppDbContext : DbContext
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<Month>(entity =>
+        {
+            entity.ToTable("month");
+
+            entity.HasKey(e => e.MonthId);
+
+            entity.Property(e => e.MonthId).HasColumnName("month_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.ShortName).HasColumnName("short_name");
+            entity.Property(e => e.DisplayOrder).HasColumnName("display_order");
         });
 
         modelBuilder.Entity<Season>(entity =>
@@ -195,6 +209,24 @@ public sealed class AppDbContext : DbContext
             entity.HasOne(e => e.Tag)
                 .WithMany()
                 .HasForeignKey(e => e.TagId);
+        });
+
+        modelBuilder.Entity<KnowledgeEntryMonth>(entity =>
+        {
+            entity.ToTable("knowledge_entry_month");
+
+            entity.HasKey(e => new { e.KnowledgeEntryId, e.MonthId });
+
+            entity.Property(e => e.KnowledgeEntryId).HasColumnName("knowledge_entry_id");
+            entity.Property(e => e.MonthId).HasColumnName("month_id");
+
+            entity.HasOne(e => e.KnowledgeEntry)
+                .WithMany(e => e.KnowledgeEntryMonths)
+                .HasForeignKey(e => e.KnowledgeEntryId);
+
+            entity.HasOne(e => e.Month)
+                .WithMany()
+                .HasForeignKey(e => e.MonthId);
         });
 
         modelBuilder.Entity<KnowledgeEntrySeason>(entity =>

@@ -9,6 +9,10 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=stripedbassfishingtool;Username=stripedbassuser;Password=stripedbasspassword
+      DurableSeed__AppendOnCreate: "true"
+      DurableSeed__KnowledgeEntriesPath: /app/db/seed/100_knowledge_entries_seed.sql
+    volumes:
+      - ./db/seed:/app/db/seed
     depends_on:
       - db
 

@@ -71,13 +71,13 @@ seed:
 reset-db:
 	docker compose down -v --remove-orphans
 	docker compose up -d --build
-	sleep 3
+	$(MAKE) wait-db
 	$(MAKE) seed
 
 reset-all:
 	docker compose down -v --remove-orphans --rmi local
 	docker compose up -d --build
-	sleep 3
+	$(MAKE) wait-db
 	$(MAKE) seed
 
 restore:
@@ -95,3 +95,7 @@ run:
 db-check:
 	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "\dn"
 	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME) -c "\dt stripedbassfishingtool.*"
+
+wait-db:
+	powershell -NoProfile -Command "while ((docker exec $(DB_CONTAINER) pg_isready -U $(DB_USER) -d $(DB_NAME)) -notmatch 'accepting connections') { Start-Sleep -Seconds 1 }"
+

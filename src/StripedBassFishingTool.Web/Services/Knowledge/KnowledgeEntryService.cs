@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using StripedBassFishingTool.Web.Data;
 using StripedBassFishingTool.Web.ViewModels.Knowledge;
+using StripedBassFishingTool.Web.Models.Knowledge;
 
 namespace StripedBassFishingTool.Web.Services.Knowledge;
 
@@ -158,4 +159,186 @@ public sealed class KnowledgeEntryService
                 .ToList()
         };
     }
+
+    public async Task<KnowledgeEntryLookupViewModel> GetCreateLookupsAsync(
+    CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        return new KnowledgeEntryLookupViewModel
+        {
+            Seasons = await db.Seasons
+                .AsNoTracking()
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.Name)
+                .Select(x => new LookupOptionViewModel
+                {
+                    Id = x.SeasonId,
+                    Name = x.Name,
+                    Description = x.Description
+                })
+                .ToListAsync(cancellationToken),
+
+            Months = await db.Months
+                .AsNoTracking()
+                .OrderBy(x => x.DisplayOrder)
+                .Select(x => new LookupOptionViewModel
+                {
+                    Id = x.MonthId,
+                    Name = x.Name,
+                    Description = x.ShortName
+                })
+                .ToListAsync(cancellationToken),
+
+            WaterTemperatureBands = await db.WaterTemperatureBands
+                .AsNoTracking()
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.Name)
+                .Select(x => new LookupOptionViewModel
+                {
+                    Id = x.WaterTemperatureBandId,
+                    Name = x.Name,
+                    Description = x.Description
+                })
+                .ToListAsync(cancellationToken),
+
+            StructureTypes = await db.StructureTypes
+                .AsNoTracking()
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.Name)
+                .Select(x => new LookupOptionViewModel
+                {
+                    Id = x.StructureTypeId,
+                    Name = x.Name,
+                    Description = x.Description
+                })
+                .ToListAsync(cancellationToken),
+
+            Techniques = await db.Techniques
+                .AsNoTracking()
+                .OrderBy(x => x.Category)
+                .ThenBy(x => x.Name)
+                .Select(x => new LookupOptionViewModel
+                {
+                    Id = x.TechniqueId,
+                    Name = x.Name,
+                    Description = x.Category
+                })
+                .ToListAsync(cancellationToken),
+
+            ForageSpecies = await db.ForageSpecies
+                .AsNoTracking()
+                .OrderBy(x => x.CommonName)
+                .Select(x => new LookupOptionViewModel
+                {
+                    Id = x.ForageSpeciesId,
+                    Name = x.CommonName,
+                    Description = x.ScientificName
+                })
+                .ToListAsync(cancellationToken),
+
+            Tags = await db.Tags
+                .AsNoTracking()
+                .OrderBy(x => x.Name)
+                .Select(x => new LookupOptionViewModel
+                {
+                    Id = x.TagId,
+                    Name = x.Name,
+                    Description = x.Description
+                })
+                .ToListAsync(cancellationToken)
+        };
+    }
+
+    public async Task<long> CreateKnowledgeEntryAsync(
+    KnowledgeEntryFormViewModel form,
+    CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var entry = new KnowledgeEntry
+        {
+            Title = form.Title.Trim(),
+            Summary = NormalizeOptionalText(form.Summary),
+            Body = form.Body.Trim(),
+            SourceType = NormalizeOptionalText(form.SourceType),
+            SourceTitle = NormalizeOptionalText(form.SourceTitle),
+            SourceAuthor = NormalizeOptionalText(form.SourceAuthor),
+            SourcePageStart = form.SourcePageStart,
+            SourcePageEnd = form.SourcePageEnd,
+            ConfidenceLevel = form.ConfidenceLevel,
+            IsPersonalObservation = form.IsPersonalObservation,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        foreach (var seasonId in form.SelectedSeasonIds.Distinct())
+        {
+            entry.KnowledgeEntrySeasons.Add(new KnowledgeEntrySeason
+            {
+                SeasonId = seasonId
+            });
+        }
+
+        foreach (var monthId in form.SelectedMonthIds.Distinct())
+        {
+            entry.KnowledgeEntryMonths.Add(new KnowledgeEntryMonth
+            {
+                MonthId = monthId
+            });
+        }
+
+        foreach (var waterTemperatureBandId in form.SelectedWaterTemperatureBandIds.Distinct())
+        {
+            entry.KnowledgeEntryTemperatureBands.Add(new KnowledgeEntryTemperatureBand
+            {
+                WaterTemperatureBandId = waterTemperatureBandId
+            });
+        }
+
+        foreach (var structureTypeId in form.SelectedStructureTypeIds.Distinct())
+        {
+            entry.KnowledgeEntryStructureTypes.Add(new KnowledgeEntryStructureType
+            {
+                StructureTypeId = structureTypeId
+            });
+        }
+
+        foreach (var techniqueId in form.SelectedTechniqueIds.Distinct())
+        {
+            entry.KnowledgeEntryTechniques.Add(new KnowledgeEntryTechnique
+            {
+                TechniqueId = techniqueId
+            });
+        }
+
+        foreach (var forageSpeciesId in form.SelectedForageSpeciesIds.Distinct())
+        {
+            entry.KnowledgeEntryForageSpecies.Add(new KnowledgeEntryForageSpecies
+            {
+                ForageSpeciesId = forageSpeciesId
+            });
+        }
+
+        foreach (var tagId in form.SelectedTagIds.Distinct())
+        {
+            entry.KnowledgeEntryTags.Add(new KnowledgeEntryTag
+            {
+                TagId = tagId
+            });
+        }
+
+        db.KnowledgeEntries.Add(entry);
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return entry.KnowledgeEntryId;
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim();
+    }
+
 }
