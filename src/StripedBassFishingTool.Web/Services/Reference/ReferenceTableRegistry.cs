@@ -41,6 +41,7 @@ public sealed class ReferenceTableRegistry
                 NaturalKeyColumn = "name",
                 Fields =
                 [
+                    Number("season_id", "season_id", "Season ID", required: true),
                     Text("name", "name", "Name", required: true),
                     TextArea("description", "description", "Description"),
                     Number("display_order", "display_order", "Display Order")
@@ -76,6 +77,7 @@ public sealed class ReferenceTableRegistry
                 NaturalKeyColumn = "name",
                 Fields =
                 [
+                    Number("water_temperature_band_id", "water_temperature_band_id", "Water Temperature Band ID", required: true),
                     Text("name", "name", "Name", required: true),
                     Number("min_temp_f", "min_temp_f", "Minimum Temp °F"),
                     Number("max_temp_f", "max_temp_f", "Maximum Temp °F"),
@@ -99,7 +101,7 @@ public sealed class ReferenceTableRegistry
                 [
                     Text("name", "name", "Name", required: true),
                     TextArea("description", "description", "Description"),
-                    TextArea("fishing_implication_notes", "fishing_implication_notes", "Fishing Implication Notes"),
+                    TextArea("fishing_notes", "fishing_notes", "Fishing Notes"),
                     Number("display_order", "display_order", "Display Order")
                 ]
             },
@@ -117,7 +119,7 @@ public sealed class ReferenceTableRegistry
                 [
                     Text("name", "name", "Name", required: true),
                     TextArea("description", "description", "Description"),
-                    TextArea("fishing_implication_notes", "fishing_implication_notes", "Fishing Implication Notes"),
+                    TextArea("fishing_notes", "fishing_notes", "Fishing Notes"),
                     Number("display_order", "display_order", "Display Order")
                 ]
             },
@@ -135,7 +137,7 @@ public sealed class ReferenceTableRegistry
                 [
                     Text("name", "name", "Name", required: true),
                     TextArea("description", "description", "Description"),
-                    TextArea("night_fishing_notes", "night_fishing_notes", "Night Fishing Notes"),
+                    TextArea("fishing_notes", "fishing_notes", "Fishing Notes"),
                     Number("display_order", "display_order", "Display Order")
                 ]
             },
@@ -153,7 +155,7 @@ public sealed class ReferenceTableRegistry
                 [
                     Text("name", "name", "Name", required: true),
                     TextArea("description", "description", "Description"),
-                    TextArea("fishing_implication_notes", "fishing_implication_notes", "Fishing Implication Notes"),
+                    TextArea("fishing_notes", "fishing_notes", "Fishing Notes"),
                     Number("display_order", "display_order", "Display Order")
                 ]
             },
@@ -171,7 +173,7 @@ public sealed class ReferenceTableRegistry
                 [
                     Text("name", "name", "Name", required: true),
                     TextArea("description", "description", "Description"),
-                    TextArea("fishing_implication_notes", "fishing_implication_notes", "Fishing Implication Notes"),
+                    TextArea("fishing_notes", "fishing_notes", "Fishing Notes"),
                     Number("display_order", "display_order", "Display Order")
                 ]
             },
@@ -247,9 +249,10 @@ public sealed class ReferenceTableRegistry
                 Fields =
                 [
                     Text("name", "name", "Name", required: true),
-                    Text("category", "category", "Category"),
                     TextArea("description", "description", "Description"),
-                    TextArea("when_to_use_notes", "when_to_use_notes", "When To Use Notes")
+                    TextArea("retrieve_speed", "retrieve_speed", "Retrieve Speed Notes"),
+                    TextArea("depth_zone", "depth_zone", "Depth Zone Notes"),
+                    TextArea("fishing_notes", "fishing_notes", "Fishing Notes")
                 ]
             },
 
@@ -283,10 +286,11 @@ public sealed class ReferenceTableRegistry
                 Fields =
                 [
                     Text("name", "name", "Name", required: true),
-                    Text("pattern_type", "pattern_type", "Pattern Type"),
                     TextArea("description", "description", "Description"),
-                    TextArea("imitates_notes", "imitates_notes", "Imitates Notes"),
-                    TextArea("when_to_use_notes", "when_to_use_notes", "When To Use Notes")
+                    TextArea("baitfish_imitation", "baitfish_imitation", "Baitfish Imitation"),
+                    TextArea("typical_size_range", "typical_size_range", "Typical Size Range"),
+                    TextArea("sink_behavior", "sink_behavior", "Sink Behavior"),
+                    TextArea("best_conditions_notes", "best_conditions_notes", "Best Conditions Notes")
                 ]
             },
 
