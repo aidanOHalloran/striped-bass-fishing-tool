@@ -1,4 +1,5 @@
 @page "/knowledge/new"
+@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Forms
 @using StripedBassFishingTool.Web.Services.Knowledge
 @using StripedBassFishingTool.Web.ViewModels.Knowledge
@@ -53,7 +54,10 @@ else if (_errorMessage is not null)
 }
 else
 {
-    <EditForm Model="_form" OnValidSubmit="HandleValidSubmitAsync" FormName="knowledge-create-form">
+    <EditForm Model="_form" 
+              OnValidSubmit="HandleValidSubmitAsync"
+              OnInvalidSubmit="HandleInvalidSubmit" 
+              FormName="knowledge-create-form">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
@@ -157,6 +161,14 @@ else
                         </div>
                     }
 
+                    @if (_validationDebugMessage is not null)
+                    {
+                        <div class="alert alert-warning">
+                            <strong>Validation issue.</strong>
+                            <pre>@_validationDebugMessage</pre>
+                        </div>
+                    }
+
                     <button type="submit" class="btn btn-primary w-100" disabled="@_isSaving">
                         @(_isSaving ? "Saving..." : "Save Knowledge Entry")
                     </button>
@@ -174,6 +186,8 @@ else
     private bool _isLoading = true;
     private bool _isSaving;
     private string? _errorMessage;
+
+    private string? _validationDebugMessage;
     private string? _saveErrorMessage;
     private DurableSeedAppendResult? _seedAppendResult;
 
@@ -200,6 +214,7 @@ else
     {
         _isSaving = true;
         _saveErrorMessage = null;
+        _validationDebugMessage = null;
         _seedAppendResult = null;
 
         try
@@ -229,6 +244,17 @@ else
         {
             _isSaving = false;
         }
+    }
+
+    private void HandleInvalidSubmit(EditContext editContext)
+    {
+        var validationMessages = editContext
+            .GetValidationMessages()
+            .ToList();
+
+        _validationDebugMessage = validationMessages.Count == 0
+            ? "The form is invalid, but no validation messages were returned."
+            : string.Join(Environment.NewLine, validationMessages);
     }
 
     private static RenderFragment RenderCheckboxGroup(
