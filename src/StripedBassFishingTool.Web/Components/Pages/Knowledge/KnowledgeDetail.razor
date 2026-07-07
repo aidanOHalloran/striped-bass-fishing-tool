@@ -1,7 +1,9 @@
 @page "/knowledge/{KnowledgeEntryId:long}"
 @using StripedBassFishingTool.Web.Services.Knowledge
+@using StripedBassFishingTool.Web.Services.UserProfile
 @using StripedBassFishingTool.Web.ViewModels.Knowledge
 @inject KnowledgeEntryService KnowledgeEntryService
+@inject UserTimeDisplayService UserTimeDisplayService
 
 <PageTitle>@(_entry?.Title ?? "Knowledge Entry")</PageTitle>
 
@@ -146,12 +148,12 @@ else
 
                     <div>
                         <dt>Added</dt>
-                        <dd>@_entry.CreatedAt.LocalDateTime.ToString("MMM d, yyyy h:mm tt")</dd>
+                        <dd>@UserTimeDisplayService.FormatDateTime(_entry.CreatedAt, _timeFormat)</dd>
                     </div>
 
                     <div>
                         <dt>Updated</dt>
-                        <dd>@(_entry.UpdatedAt?.LocalDateTime.ToString("MMM d, yyyy h:mm tt") ?? "Never")</dd>
+                        <dd>@(_entry.UpdatedAt is null ? "Never" : UserTimeDisplayService.FormatDateTime(_entry.UpdatedAt.Value, _timeFormat))</dd>
                     </div>
 
                     <div>
@@ -170,6 +172,7 @@ else
 
     private bool _isLoading = true;
     private string? _errorMessage;
+    private string _timeFormat = "12-hour";
     private KnowledgeEntryDetailViewModel? _entry;
 
     protected override async Task OnParametersSetAsync()
@@ -179,6 +182,7 @@ else
 
         try
         {
+            _timeFormat = await UserTimeDisplayService.GetTimeFormatAsync();
             _entry = await KnowledgeEntryService.GetKnowledgeEntryDetailAsync(KnowledgeEntryId);
         }
         catch (Exception ex)

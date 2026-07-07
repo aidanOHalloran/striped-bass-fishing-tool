@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using StripedBassFishingTool.Web.Data;
 using StripedBassFishingTool.Web.Models.FishingLogs;
+using StripedBassFishingTool.Web.Services.UserProfile;
 using StripedBassFishingTool.Web.ViewModels.FishingLogs;
 using StripedBassFishingTool.Web.ViewModels.Knowledge;
 
@@ -9,10 +10,14 @@ namespace StripedBassFishingTool.Web.Services.FishingLogs;
 public sealed class FishingTripService
 {
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly UserTimeDisplayService _timeDisplayService;
 
-    public FishingTripService(IDbContextFactory<AppDbContext> dbContextFactory)
+    public FishingTripService(
+        IDbContextFactory<AppDbContext> dbContextFactory,
+        UserTimeDisplayService timeDisplayService)
     {
         _dbContextFactory = dbContextFactory;
+        _timeDisplayService = timeDisplayService;
     }
 
     public async Task<FishingTripLookupViewModel> GetLookupsAsync(CancellationToken cancellationToken = default)
@@ -171,6 +176,7 @@ public sealed class FishingTripService
         CancellationToken cancellationToken = default)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var timeFormat = await _timeDisplayService.GetTimeFormatAsync(cancellationToken);
 
         var query = BuildTripQuery(db.FishingTrips.AsNoTracking(), filter);
 
@@ -204,7 +210,7 @@ public sealed class FishingTripService
             .Take(100)
             .ToListAsync(cancellationToken);
 
-        return trips.Select(ToCard).ToList();
+        return trips.Select(x => ToCard(x, timeFormat)).ToList();
     }
 
     public async Task<FishingTripDetailViewModel?> GetTripDetailAsync(
@@ -212,6 +218,7 @@ public sealed class FishingTripService
         CancellationToken cancellationToken = default)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var timeFormat = await _timeDisplayService.GetTimeFormatAsync(cancellationToken);
 
         var trip = await db.FishingTrips
             .AsNoTracking()
@@ -258,7 +265,7 @@ public sealed class FishingTripService
             TripDate = trip.TripDate,
             BodyOfWaterName = trip.BodyOfWater.Name,
             State = trip.BodyOfWater.State,
-            TimeRange = FormatTimeRange(trip.StartTime, trip.EndTime),
+            TimeRange = UserTimeDisplayService.FormatTimeRange(trip.StartTime, trip.EndTime, timeFormat),
             Purpose = trip.Purpose,
             OverallSuccessRating = trip.OverallSuccessRating,
             Summary = trip.Summary,
@@ -266,7 +273,7 @@ public sealed class FishingTripService
             Sessions = trip.FishingSessions
                 .OrderBy(x => x.StartTime)
                 .ThenBy(x => x.SessionName)
-                .Select(ToSessionSummary)
+                .Select(x => ToSessionSummary(x, timeFormat))
                 .ToList()
         };
     }
@@ -654,7 +661,7 @@ public sealed class FishingTripService
         return query;
     }
 
-    private static FishingTripCardViewModel ToCard(FishingTrip trip)
+    private static FishingTripCardViewModel ToCard(FishingTrip trip, string timeFormat)
     {
         var sessions = trip.FishingSessions.ToList();
         var catches = sessions.SelectMany(x => x.CatchRecords).ToList();
@@ -666,7 +673,7 @@ public sealed class FishingTripService
             TripDate = trip.TripDate,
             BodyOfWaterName = trip.BodyOfWater.Name,
             State = trip.BodyOfWater.State,
-            TimeRange = FormatTimeRange(trip.StartTime, trip.EndTime),
+            TimeRange = UserTimeDisplayService.FormatTimeRange(trip.StartTime, trip.EndTime, timeFormat),
             Purpose = trip.Purpose,
             Summary = trip.Summary,
             LessonsLearned = trip.LessonsLearned,
@@ -729,7 +736,7 @@ public sealed class FishingTripService
         };
     }
 
-    private static FishingSessionSummaryViewModel ToSessionSummary(FishingSession session)
+    private static FishingSessionSummaryViewModel ToSessionSummary(FishingSession session, string timeFormat)
     {
         var environment = session.EnvironmentSnapshots
             .OrderBy(x => x.ObservedAt)
@@ -739,7 +746,7 @@ public sealed class FishingTripService
         {
             Title = string.IsNullOrWhiteSpace(session.SessionName) ? "Session" : session.SessionName,
             LocationName = session.FishingLocation?.Name,
-            TimeRange = FormatTimeRange(session.StartTime, session.EndTime),
+            TimeRange = UserTimeDisplayService.FormatTimeRange(session.StartTime, session.EndTime, timeFormat),
             LightCondition = session.LightCondition?.Name,
             WaterClarity = session.WaterClarity?.Name,
             MoonPhase = session.MoonPhase?.Name,
@@ -771,21 +778,6 @@ public sealed class FishingTripService
         => string.IsNullOrWhiteSpace(trip.TripName)
             ? $"{trip.BodyOfWater.Name} - {trip.TripDate:MMM d, yyyy}"
             : trip.TripName;
-
-    private static string? FormatTimeRange(DateTimeOffset? start, DateTimeOffset? end)
-    {
-        if (start is null && end is null)
-        {
-            return null;
-        }
-
-        if (start is not null && end is not null)
-        {
-            return $"{start.Value.LocalDateTime:t} - {end.Value.LocalDateTime:t}";
-        }
-
-        return start?.LocalDateTime.ToString("t") ?? end?.LocalDateTime.ToString("t");
-    }
 
     private static bool HasEnvironmentSnapshot(FishingTripFormViewModel form)
         => form.WaterTemperatureF.HasValue

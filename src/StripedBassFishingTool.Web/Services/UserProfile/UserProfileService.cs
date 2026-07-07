@@ -1,4 +1,4 @@
-    using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using StripedBassFishingTool.Web.Data;
 using StripedBassFishingTool.Web.ViewModels.UserProfile;
 
@@ -17,6 +17,7 @@ public sealed class UserProfileService
         CancellationToken cancellationToken = default)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await EnsureUserProfileSettingsSchemaAsync(db, cancellationToken);
 
         var profile = await db.UserProfiles
             .OrderBy(x => x.UserProfileId)
@@ -28,6 +29,7 @@ public sealed class UserProfileService
             {
                 Username = "Angler",
                 Email = string.Empty,
+                TimeFormat = "12-hour",
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
@@ -39,8 +41,23 @@ public sealed class UserProfileService
         {
             UserProfileId = profile.UserProfileId,
             Username = profile.Username,
-            Email = profile.Email
+            Email = profile.Email,
+            TimeFormat = NormalizeTimeFormat(profile.TimeFormat)
         };
+    }
+
+    public async Task<string> GetTimeFormatAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await EnsureUserProfileSettingsSchemaAsync(db, cancellationToken);
+
+        var timeFormat = await db.UserProfiles
+            .AsNoTracking()
+            .OrderBy(x => x.UserProfileId)
+            .Select(x => x.TimeFormat)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return NormalizeTimeFormat(timeFormat);
     }
 
     public async Task UpdateProfileAsync(
@@ -48,6 +65,7 @@ public sealed class UserProfileService
         CancellationToken cancellationToken = default)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        await EnsureUserProfileSettingsSchemaAsync(db, cancellationToken);
 
         var profile = await db.UserProfiles
             .SingleOrDefaultAsync(
@@ -60,6 +78,7 @@ public sealed class UserProfileService
             {
                 Username = form.Username.Trim(),
                 Email = NormalizeEmail(form.Email),
+                TimeFormat = NormalizeTimeFormat(form.TimeFormat),
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
@@ -70,6 +89,7 @@ public sealed class UserProfileService
         {
             profile.Username = form.Username.Trim();
             profile.Email = NormalizeEmail(form.Email);
+            profile.TimeFormat = NormalizeTimeFormat(form.TimeFormat);
             profile.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
@@ -81,5 +101,24 @@ public sealed class UserProfileService
         return string.IsNullOrWhiteSpace(email)
             ? string.Empty
             : email.Trim();
+    }
+
+    private static string NormalizeTimeFormat(string? timeFormat)
+    {
+        return string.Equals(timeFormat, "24-hour", StringComparison.Ordinal)
+            ? "24-hour"
+            : "12-hour";
+    }
+
+    private static async Task EnsureUserProfileSettingsSchemaAsync(
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            ALTER TABLE stripedbassfishingtool.user_profile
+            ADD COLUMN IF NOT EXISTS time_format TEXT NOT NULL DEFAULT '12-hour';
+            """,
+            cancellationToken);
     }
 }

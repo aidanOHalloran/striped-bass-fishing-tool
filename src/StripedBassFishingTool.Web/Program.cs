@@ -28,6 +28,7 @@ builder.Services.Configure<DurableSeedOptions>(
     builder.Configuration.GetSection("DurableSeed"));
 
 builder.Services.AddScoped<UserProfileService>();
+builder.Services.AddScoped<UserTimeDisplayService>();
 
 
 // Knowledge services

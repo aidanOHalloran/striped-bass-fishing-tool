@@ -64,6 +64,21 @@ else
                     </div>
                 </div>
 
+                <div class="form-card">
+                    <h2>Display Preferences</h2>
+
+                    <div class="form-field">
+                        <label for="timeFormat">Time Format</label>
+                        <InputSelect id="timeFormat"
+                                     class="form-select"
+                                     @bind-Value="_form.TimeFormat">
+                            <option value="12-hour">12-hour, e.g. 7:30 PM</option>
+                            <option value="24-hour">24-hour, e.g. 19:30</option>
+                        </InputSelect>
+                        <ValidationMessage For="() => _form.TimeFormat" />
+                    </div>
+                </div>
+
                 <div class="form-card profile-preview-card">
                     <h2>Preview</h2>
 
@@ -84,6 +99,8 @@ else
                             {
                                 <p class="text-muted">No email set</p>
                             }
+
+                            <p class="text-muted">@TimeFormatPreview</p>
                         </div>
                     </div>
                 </div>
@@ -142,6 +159,11 @@ else
         string.IsNullOrWhiteSpace(_form.Username)
             ? "Angler"
             : _form.Username;
+
+    private string TimeFormatPreview =>
+        _form.TimeFormat == "24-hour"
+            ? "Time displays as 19:30"
+            : "Time displays as 7:30 PM";
 
     protected override async Task OnInitializedAsync()
     {

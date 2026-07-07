@@ -13,4 +13,8 @@ public sealed class UserProfileEditViewModel
     [EmailAddress]
     [StringLength(250)]
     public string Email { get; set; } = string.Empty;
+
+    [Required]
+    [RegularExpression("12-hour|24-hour")]
+    public string TimeFormat { get; set; } = "12-hour";
 }

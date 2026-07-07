@@ -92,6 +92,9 @@ public sealed class AppDbContext : DbContext
             entity.Property(e => e.Email)
                 .HasColumnName("email");
 
+            entity.Property(e => e.TimeFormat)
+                .HasColumnName("time_format");
+
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("created_at");
 

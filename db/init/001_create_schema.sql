@@ -37,8 +37,12 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.user_profile (
     user_profile_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
+    time_format TEXT NOT NULL DEFAULT '12-hour',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    CONSTRAINT ck_user_profile_time_format
+        CHECK (time_format IN ('12-hour', '24-hour'))
 );
 
 -- add placeholder user for now to avoid nulls in created_by fields
