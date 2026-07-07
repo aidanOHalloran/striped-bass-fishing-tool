@@ -1231,3 +1231,217 @@ h1:focus {
 .profile-preview p {
     margin: 0.2rem 0 0;
 }
+
+.settings-toggle {
+    margin-top: 0.5rem;
+}
+
+.theme-dark {
+    color-scheme: dark;
+    min-height: 100vh;
+    background: #111827;
+    color: #dbe4ef;
+}
+
+.theme-dark main,
+.theme-dark .content {
+    background: #111827;
+}
+
+.theme-dark .sidebar {
+    background-image: linear-gradient(180deg, #07111f 0%, #243b2f 100%);
+}
+
+.theme-dark .top-row {
+    background-color: #182233;
+    border-bottom-color: #2f3f56;
+}
+
+.theme-dark h1,
+.theme-dark h2,
+.theme-dark h3,
+.theme-dark .page-header h1,
+.theme-dark .trip-card-header h2,
+.theme-dark .trip-card-header h3,
+.theme-dark .reference-card h2,
+.theme-dark .reference-record-card h2,
+.theme-dark .profile-preview h3,
+.theme-dark .profile-summary strong {
+    color: #f8fafc;
+}
+
+.theme-dark .text-muted,
+.theme-dark .source-line,
+.theme-dark .knowledge-summary,
+.theme-dark .dashboard-card p,
+.theme-dark .reference-card p,
+.theme-dark .reference-record-card p,
+.theme-dark .profile-summary,
+.theme-dark .field-help {
+    color: #a7b7cc !important;
+}
+
+.theme-dark .eyebrow,
+.theme-dark .summary-label,
+.theme-dark .chip-label,
+.theme-dark .trip-date,
+.theme-dark .profile-greeting,
+.theme-dark .profile-preview-label,
+.theme-dark .section-heading-row span,
+.theme-dark .snapshot-list dt,
+.theme-dark .detail-summary-panel h2,
+.theme-dark .detail-body h2,
+.theme-dark .side-card h2,
+.theme-dark .form-card h2 {
+    color: #8fb6d6;
+}
+
+.theme-dark .hero-panel {
+    background: linear-gradient(135deg, #0f172a, #1f3a37);
+    box-shadow: none;
+}
+
+.theme-dark .dashboard-card,
+.theme-dark .knowledge-card,
+.theme-dark .summary-card,
+.theme-dark .state-card,
+.theme-dark .detail-card,
+.theme-dark .side-card,
+.theme-dark .form-card,
+.theme-dark .form-actions-card,
+.theme-dark .filter-panel,
+.theme-dark .trip-card,
+.theme-dark .session-card,
+.theme-dark .reference-card,
+.theme-dark .reference-record-card,
+.theme-dark .settings-link {
+    background: #182233;
+    border-color: #2f3f56;
+    color: #dbe4ef;
+    box-shadow: none;
+}
+
+.theme-dark .dashboard-card:hover,
+.theme-dark .knowledge-card-link:hover,
+.theme-dark .trip-card:hover,
+.theme-dark .reference-card:hover,
+.theme-dark .settings-link:hover {
+    border-color: #5f83a5;
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.28);
+}
+
+.theme-dark .detail-summary-panel,
+.theme-dark .chip,
+.theme-dark .trip-stats span,
+.theme-dark .profile-avatar,
+.theme-dark .checkbox-pill {
+    background: #223149;
+    border-color: #364965;
+    color: #dbe4ef;
+}
+
+.theme-dark .form-control,
+.theme-dark .form-select,
+.theme-dark textarea,
+.theme-dark input {
+    background-color: #0f172a;
+    border-color: #3e526d;
+    color: #f8fafc;
+}
+
+.theme-dark .form-control::placeholder,
+.theme-dark input::placeholder,
+.theme-dark textarea::placeholder {
+    color: #7f91aa;
+}
+
+.theme-dark .form-field label,
+.theme-dark .page-range-fields label,
+.theme-dark .checkbox-row,
+.theme-dark .detail-list dd,
+.theme-dark .snapshot-list dd,
+.theme-dark .observation-badge {
+    color: #dbe4ef;
+}
+
+.theme-dark .detail-header,
+.theme-dark .knowledge-card-footer,
+.theme-dark .checkbox-group,
+.theme-dark .snapshot-list div {
+    border-color: #2f3f56;
+}
+
+.theme-dark .back-link,
+.theme-dark a,
+.theme-dark .btn-link {
+    color: #8ec5ff;
+}
+
+.theme-dark .btn-outline-secondary {
+    color: #dbe4ef;
+    border-color: #5f7189;
+}
+
+.theme-dark .btn-outline-secondary:hover {
+    background: #2f3f56;
+    color: #f8fafc;
+}
+
+.theme-dark .confidence-pill,
+.theme-dark .confidence-3 {
+    background: #17384a;
+    color: #b7e5ff;
+}
+
+.theme-dark .confidence-1 {
+    background: #4a1f26;
+    color: #ffc7c2;
+}
+
+.theme-dark .confidence-2 {
+    background: #4a3517;
+    color: #ffd98a;
+}
+
+.theme-dark .confidence-4 {
+    background: #173b2b;
+    color: #a7f3c2;
+}
+
+.theme-dark .confidence-5 {
+    background: #35255a;
+    color: #dac8ff;
+}
+
+.theme-dark .lesson-strip {
+    background: #153323;
+    border-left-color: #57b67e;
+    color: #b8f0cd;
+}
+
+.theme-dark .danger-zone {
+    background: #2a1820;
+    border-color: #7a3342;
+}
+
+.theme-dark .danger-zone h2 {
+    color: #ffb4ab;
+}
+
+.theme-dark .alert-danger {
+    background: #3f1d24;
+    border-color: #7f3542;
+    color: #ffd7d3;
+}
+
+.theme-dark .alert-warning {
+    background: #3a2c13;
+    border-color: #7f641e;
+    color: #ffe2a6;
+}
+
+.theme-dark .alert-success {
+    background: #173b2b;
+    border-color: #2f7a54;
+    color: #b8f0cd;
+}

@@ -3,7 +3,7 @@
 @using StripedBassFishingTool.Web.ViewModels.UserProfile
 @inject UserProfileService UserProfileService
 
-<div class="page">
+<div class="page @ThemeClass">
     <div class="sidebar">
         <NavMenu />
     </div>
@@ -40,6 +40,11 @@
 
 @code {
     private UserProfileEditViewModel? _profile;
+
+    private string ThemeClass =>
+        _profile?.DarkModeEnabled == true
+            ? "theme-dark"
+            : "theme-light";
 
     protected override async Task OnInitializedAsync()
     {

@@ -30,6 +30,7 @@ public sealed class UserProfileService
                 Username = "Angler",
                 Email = string.Empty,
                 TimeFormat = "12-hour",
+                DarkModeEnabled = false,
                 CreatedAt = DateTimeOffset.UtcNow
             };
 
@@ -42,7 +43,8 @@ public sealed class UserProfileService
             UserProfileId = profile.UserProfileId,
             Username = profile.Username,
             Email = profile.Email,
-            TimeFormat = NormalizeTimeFormat(profile.TimeFormat)
+            TimeFormat = NormalizeTimeFormat(profile.TimeFormat),
+            DarkModeEnabled = profile.DarkModeEnabled
         };
     }
 
@@ -79,6 +81,7 @@ public sealed class UserProfileService
                 Username = form.Username.Trim(),
                 Email = NormalizeEmail(form.Email),
                 TimeFormat = NormalizeTimeFormat(form.TimeFormat),
+                DarkModeEnabled = form.DarkModeEnabled,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
@@ -90,6 +93,7 @@ public sealed class UserProfileService
             profile.Username = form.Username.Trim();
             profile.Email = NormalizeEmail(form.Email);
             profile.TimeFormat = NormalizeTimeFormat(form.TimeFormat);
+            profile.DarkModeEnabled = form.DarkModeEnabled;
             profile.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
@@ -118,6 +122,9 @@ public sealed class UserProfileService
             """
             ALTER TABLE stripedbassfishingtool.user_profile
             ADD COLUMN IF NOT EXISTS time_format TEXT NOT NULL DEFAULT '12-hour';
+
+            ALTER TABLE stripedbassfishingtool.user_profile
+            ADD COLUMN IF NOT EXISTS dark_mode_enabled BOOLEAN NOT NULL DEFAULT false;
             """,
             cancellationToken);
     }

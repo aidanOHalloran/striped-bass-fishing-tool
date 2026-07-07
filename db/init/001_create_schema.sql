@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS stripedbassfishingtool.user_profile (
     username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
     time_format TEXT NOT NULL DEFAULT '12-hour',
+    dark_mode_enabled BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 

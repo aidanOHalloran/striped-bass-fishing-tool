@@ -17,4 +17,6 @@ public sealed class UserProfileEditViewModel
     [Required]
     [RegularExpression("12-hour|24-hour")]
     public string TimeFormat { get; set; } = "12-hour";
+
+    public bool DarkModeEnabled { get; set; }
 }
