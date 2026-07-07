@@ -66,6 +66,7 @@ db:
 seed:
 	docker exec -i $(DB_CONTAINER) psql -v ON_ERROR_STOP=1 -U $(DB_USER) -d $(DB_NAME) < db/seed/010_reference_seed.sql
 	docker exec -i $(DB_CONTAINER) psql -v ON_ERROR_STOP=1 -U $(DB_USER) -d $(DB_NAME) < db/seed/020_body_of_water_seed.sql
+	docker exec -i $(DB_CONTAINER) psql -v ON_ERROR_STOP=1 -U $(DB_USER) -d $(DB_NAME) < db/seed/030_seeded_image_seed.sql
 	docker exec -i $(DB_CONTAINER) psql -v ON_ERROR_STOP=1 -U $(DB_USER) -d $(DB_NAME) < db/seed/100_knowledge_entries_seed.sql
 
 reset-db:

@@ -2,6 +2,9 @@
 @rendermode InteractiveServer
 @using StripedBassFishingTool.Web.Services.Reference
 @using StripedBassFishingTool.Web.ViewModels.Reference
+@using StripedBassFishingTool.Web.Services.Media
+@using StripedBassFishingTool.Web.ViewModels.Media
+@inject SeededImageService SeededImageService
 @inject ReferenceDataService ReferenceDataService
 
 <PageTitle>@(_table?.PluralDisplayName ?? "Reference Data")</PageTitle>
@@ -60,7 +63,23 @@ else
         <section class="reference-record-grid">
             @foreach (var record in _records)
             {
+                var hasImages = _imagesByReferenceKey.TryGetValue(
+                    record.PrimaryLabel,
+                    out var recordImages);
+
+                var primaryImage = hasImages
+                    ? recordImages!.FirstOrDefault()
+                    : null;
+
                 <article class="reference-record-card">
+                    @if (primaryImage is not null)
+                    {
+                        <img class="reference-record-image"
+                            src="@primaryImage.ImagePath"
+                            alt="@primaryImage.AltText"
+                            loading="lazy" />
+                    }
+
                     <div>
                         <h2>@record.PrimaryLabel</h2>
 
@@ -98,6 +117,8 @@ else
     private string? _errorMessage;
     private ReferenceTableViewModel? _table;
     private IReadOnlyList<ReferenceRecordViewModel> _records = [];
+    private IReadOnlyDictionary<string, IReadOnlyList<SeededImageCardViewModel>> _imagesByReferenceKey =
+        new Dictionary<string, IReadOnlyList<SeededImageCardViewModel>>();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -109,9 +130,13 @@ else
             _table = ReferenceDataService.GetTableDefinition(ReferenceType);
 
             if (_table is not null)
-            {
-                _records = await ReferenceDataService.GetRecordsAsync(ReferenceType);
-            }
+        {
+            _records = await ReferenceDataService.GetRecordsAsync(ReferenceType);
+
+            _imagesByReferenceKey = await SeededImageService.GetImagesForReferenceRecordsAsync(
+                ReferenceType,
+                _records.Select(x => x.PrimaryLabel).ToList());
+        }
         }
         catch (Exception ex)
         {
