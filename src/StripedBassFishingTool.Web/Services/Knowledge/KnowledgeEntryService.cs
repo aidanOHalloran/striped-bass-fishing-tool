@@ -250,6 +250,73 @@ public sealed class KnowledgeEntryService
         };
     }
 
+    public async Task<KnowledgeEntryFormViewModel?> GetKnowledgeEntryFormAsync(
+        long knowledgeEntryId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var entry = await db.KnowledgeEntries
+            .AsNoTracking()
+            .Include(e => e.KnowledgeEntrySeasons)
+            .Include(e => e.KnowledgeEntryMonths)
+            .Include(e => e.KnowledgeEntryTemperatureBands)
+            .Include(e => e.KnowledgeEntryStructureTypes)
+            .Include(e => e.KnowledgeEntryTechniques)
+            .Include(e => e.KnowledgeEntryForageSpecies)
+            .Include(e => e.KnowledgeEntryTags)
+            .SingleOrDefaultAsync(
+                e => e.KnowledgeEntryId == knowledgeEntryId,
+                cancellationToken);
+
+        if (entry is null)
+        {
+            return null;
+        }
+
+        return new KnowledgeEntryFormViewModel
+        {
+            Title = entry.Title,
+            Summary = entry.Summary,
+            Body = entry.Body,
+            SourceType = entry.SourceType,
+            SourceTitle = entry.SourceTitle,
+            SourceAuthor = entry.SourceAuthor,
+            SourcePageStart = entry.SourcePageStart,
+            SourcePageEnd = entry.SourcePageEnd,
+            ConfidenceLevel = entry.ConfidenceLevel,
+            IsPersonalObservation = entry.IsPersonalObservation,
+
+            SelectedSeasonIds = entry.KnowledgeEntrySeasons
+                .Select(x => x.SeasonId)
+                .ToList(),
+
+            SelectedMonthIds = entry.KnowledgeEntryMonths
+                .Select(x => x.MonthId)
+                .ToList(),
+
+            SelectedWaterTemperatureBandIds = entry.KnowledgeEntryTemperatureBands
+                .Select(x => x.WaterTemperatureBandId)
+                .ToList(),
+
+            SelectedStructureTypeIds = entry.KnowledgeEntryStructureTypes
+                .Select(x => x.StructureTypeId)
+                .ToList(),
+
+            SelectedTechniqueIds = entry.KnowledgeEntryTechniques
+                .Select(x => x.TechniqueId)
+                .ToList(),
+
+            SelectedForageSpeciesIds = entry.KnowledgeEntryForageSpecies
+                .Select(x => x.ForageSpeciesId)
+                .ToList(),
+
+            SelectedTagIds = entry.KnowledgeEntryTags
+                .Select(x => x.TagId)
+                .ToList()
+        };
+    }
+
     public async Task<long> CreateKnowledgeEntryAsync(
     KnowledgeEntryFormViewModel form,
     CancellationToken cancellationToken = default)
@@ -334,11 +401,149 @@ public sealed class KnowledgeEntryService
         return entry.KnowledgeEntryId;
     }
 
+    public async Task<bool> UpdateKnowledgeEntryAsync(
+        long knowledgeEntryId,
+        KnowledgeEntryFormViewModel form,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var entry = await db.KnowledgeEntries
+            .Include(e => e.KnowledgeEntrySeasons)
+            .Include(e => e.KnowledgeEntryMonths)
+            .Include(e => e.KnowledgeEntryTemperatureBands)
+            .Include(e => e.KnowledgeEntryStructureTypes)
+            .Include(e => e.KnowledgeEntryTechniques)
+            .Include(e => e.KnowledgeEntryForageSpecies)
+            .Include(e => e.KnowledgeEntryTags)
+            .SingleOrDefaultAsync(
+                e => e.KnowledgeEntryId == knowledgeEntryId,
+                cancellationToken);
+
+        if (entry is null)
+        {
+            return false;
+        }
+
+        entry.Title = form.Title.Trim();
+        entry.Summary = NormalizeOptionalText(form.Summary);
+        entry.Body = form.Body.Trim();
+        entry.SourceType = NormalizeOptionalText(form.SourceType);
+        entry.SourceTitle = NormalizeOptionalText(form.SourceTitle);
+        entry.SourceAuthor = NormalizeOptionalText(form.SourceAuthor);
+        entry.SourcePageStart = form.SourcePageStart;
+        entry.SourcePageEnd = form.SourcePageEnd;
+        entry.ConfidenceLevel = form.ConfidenceLevel;
+        entry.IsPersonalObservation = form.IsPersonalObservation;
+        entry.UpdatedAt = DateTimeOffset.UtcNow;
+
+        SyncRelationships(
+            entry.KnowledgeEntrySeasons,
+            form.SelectedSeasonIds,
+            x => x.SeasonId,
+            seasonId => new KnowledgeEntrySeason
+            {
+                KnowledgeEntryId = knowledgeEntryId,
+                SeasonId = seasonId
+            });
+
+        SyncRelationships(
+            entry.KnowledgeEntryMonths,
+            form.SelectedMonthIds,
+            x => x.MonthId,
+            monthId => new KnowledgeEntryMonth
+            {
+                KnowledgeEntryId = knowledgeEntryId,
+                MonthId = monthId
+            });
+
+        SyncRelationships(
+            entry.KnowledgeEntryTemperatureBands,
+            form.SelectedWaterTemperatureBandIds,
+            x => x.WaterTemperatureBandId,
+            waterTemperatureBandId => new KnowledgeEntryTemperatureBand
+            {
+                KnowledgeEntryId = knowledgeEntryId,
+                WaterTemperatureBandId = waterTemperatureBandId
+            });
+
+        SyncRelationships(
+            entry.KnowledgeEntryStructureTypes,
+            form.SelectedStructureTypeIds,
+            x => x.StructureTypeId,
+            structureTypeId => new KnowledgeEntryStructureType
+            {
+                KnowledgeEntryId = knowledgeEntryId,
+                StructureTypeId = structureTypeId
+            });
+
+        SyncRelationships(
+            entry.KnowledgeEntryTechniques,
+            form.SelectedTechniqueIds,
+            x => x.TechniqueId,
+            techniqueId => new KnowledgeEntryTechnique
+            {
+                KnowledgeEntryId = knowledgeEntryId,
+                TechniqueId = techniqueId
+            });
+
+        SyncRelationships(
+            entry.KnowledgeEntryForageSpecies,
+            form.SelectedForageSpeciesIds,
+            x => x.ForageSpeciesId,
+            forageSpeciesId => new KnowledgeEntryForageSpecies
+            {
+                KnowledgeEntryId = knowledgeEntryId,
+                ForageSpeciesId = forageSpeciesId
+            });
+
+        SyncRelationships(
+            entry.KnowledgeEntryTags,
+            form.SelectedTagIds,
+            x => x.TagId,
+            tagId => new KnowledgeEntryTag
+            {
+                KnowledgeEntryId = knowledgeEntryId,
+                TagId = tagId
+            });
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
+
     private static string? NormalizeOptionalText(string? value)
     {
         return string.IsNullOrWhiteSpace(value)
             ? null
             : value.Trim();
+    }
+
+    private static void SyncRelationships<TJoin>(
+        ICollection<TJoin> relationships,
+        IEnumerable<int> selectedIds,
+        Func<TJoin, int> getId,
+        Func<int, TJoin> createRelationship)
+    {
+        var selectedIdSet = selectedIds
+            .Distinct()
+            .ToHashSet();
+
+        foreach (var relationship in relationships
+            .Where(x => !selectedIdSet.Contains(getId(x)))
+            .ToList())
+        {
+            relationships.Remove(relationship);
+        }
+
+        var existingIdSet = relationships
+            .Select(getId)
+            .ToHashSet();
+
+        foreach (var selectedId in selectedIdSet.Except(existingIdSet))
+        {
+            relationships.Add(createRelationship(selectedId));
+        }
     }
 
 }

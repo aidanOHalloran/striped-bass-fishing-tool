@@ -53,9 +53,15 @@ else
                         </p>
                     </div>
 
-                    <span class="confidence-pill confidence-@_entry.ConfidenceLevel">
-                        @_entry.ConfidenceLabel
-                    </span>
+                    <div class="detail-header-actions">
+                        <span class="confidence-pill confidence-@_entry.ConfidenceLevel">
+                            @_entry.ConfidenceLabel
+                        </span>
+
+                        <a class="btn btn-outline-primary btn-sm" href="@($"/knowledge/{_entry.KnowledgeEntryId}/edit")">
+                            Edit
+                        </a>
+                    </div>
                 </header>
 
                 @if (!string.IsNullOrWhiteSpace(_entry.Summary))
