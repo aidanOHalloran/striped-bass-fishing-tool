@@ -29,6 +29,8 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<ForageSpecies> ForageSpecies => Set<ForageSpecies>();
 
+    public DbSet<SeededImage> SeededImages => Set<SeededImage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("stripedbassfishingtool");
@@ -37,6 +39,7 @@ public sealed class AppDbContext : DbContext
         ConfigureKnowledgeEntry(modelBuilder);
         ConfigureReferenceTables(modelBuilder);
         ConfigureKnowledgeRelationships(modelBuilder);
+        ConfigureMedia(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
     }
@@ -112,6 +115,30 @@ public sealed class AppDbContext : DbContext
 
             entity.Property(e => e.UpdatedAt)
                 .HasColumnName("updated_at");
+        });
+    }
+
+    private static void ConfigureMedia(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SeededImage>(entity =>
+        {
+            entity.ToTable("seeded_image");
+
+            entity.HasKey(e => e.SeededImageId);
+
+            entity.Property(e => e.SeededImageId).HasColumnName("seeded_image_id");
+            entity.Property(e => e.Title).HasColumnName("title");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.ImageCategory).HasColumnName("image_category");
+            entity.Property(e => e.ImagePath).HasColumnName("image_path");
+            entity.Property(e => e.AltText).HasColumnName("alt_text");
+            entity.Property(e => e.LinkedReferenceType).HasColumnName("linked_reference_type");
+            entity.Property(e => e.LinkedReferenceKey).HasColumnName("linked_reference_key");
+            entity.Property(e => e.SourceName).HasColumnName("source_name");
+            entity.Property(e => e.SourceUrl).HasColumnName("source_url");
+            entity.Property(e => e.AttributionNotes).HasColumnName("attribution_notes");
+            entity.Property(e => e.IsActive).HasColumnName("is_active");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
         });
     }
 

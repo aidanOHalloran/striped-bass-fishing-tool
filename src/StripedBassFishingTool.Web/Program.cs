@@ -33,9 +33,12 @@ builder.Services.AddScoped<UserProfileService>();
 builder.Services.AddScoped<KnowledgeEntryService>();
 builder.Services.AddScoped<KnowledgeEntrySeedWriter>();
 
-// Reference data servicesq
+// Reference data services
 builder.Services.AddSingleton<ReferenceTableRegistry>();
 builder.Services.AddScoped<ReferenceDataService>();
+
+// Media services
+builder.Services.AddScoped<SeededImageService>();
 
 var app = builder.Build();
 
