@@ -72,13 +72,7 @@ else
                     : null;
 
                 <article class="reference-record-card">
-                    @if (primaryImage is not null)
-                    {
-                        <img class="reference-record-image"
-                            src="@primaryImage.ImagePath"
-                            alt="@primaryImage.AltText"
-                            loading="lazy" />
-                    }
+                    
 
                     <div>
                         <h2>@record.PrimaryLabel</h2>
@@ -103,6 +97,14 @@ else
                             }
                         }
                     </dl>
+
+                    @if (primaryImage is not null)
+                    {
+                        <img class="reference-record-image"
+                            src="@primaryImage.ImagePath"
+                            alt="@primaryImage.AltText"
+                            loading="lazy" />
+                    }
                 </article>
             }
         </section>

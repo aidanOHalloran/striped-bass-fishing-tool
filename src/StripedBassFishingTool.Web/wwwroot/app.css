@@ -853,6 +853,12 @@ h1:focus {
     color: #334e68;
     font-weight: 650;
 }
+/* Reference record image styling */
+.reference-record-image {
+    margin-top: 1rem;
+    width: 100%;
+    border-radius: 0.75rem;
+}
 
 .required-marker {
     color: #b42318;

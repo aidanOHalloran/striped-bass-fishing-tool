@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StripedBassFishingTool.Web.Models.Knowledge;
+using StripedBassFishingTool.Web.Models.Media;
 using StripedBassFishingTool.Web.Models.Reference;
 using StripedBassFishingTool.Web.Models.UserProfile;
 

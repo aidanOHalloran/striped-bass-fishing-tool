@@ -4,6 +4,7 @@ using StripedBassFishingTool.Web.Data;
 using StripedBassFishingTool.Web.Components;
 using StripedBassFishingTool.Web.Services.UserProfile;
 using StripedBassFishingTool.Web.Services.Knowledge;
+using StripedBassFishingTool.Web.Services.Media;
 using StripedBassFishingTool.Web.Options;
 using StripedBassFishingTool.Web.Services.Reference;
 
