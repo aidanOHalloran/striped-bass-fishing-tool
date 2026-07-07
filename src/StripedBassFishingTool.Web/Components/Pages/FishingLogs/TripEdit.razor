@@ -1,0 +1,280 @@
+@page "/trips/{FishingTripId:long}/edit"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Forms
+@using StripedBassFishingTool.Web.Services.FishingLogs
+@using StripedBassFishingTool.Web.ViewModels.FishingLogs
+@inject FishingTripService FishingTripService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit Fishing Trip</PageTitle>
+
+<section class="page-header">
+    <div>
+        <a class="back-link" href="@($"/trips/{FishingTripId}")">&larr; Back to Trip</a>
+        <p class="eyebrow">Edit Trip</p>
+        <h1>Update Fishing Trip</h1>
+        <p class="text-muted page-intro">
+            Adjust the trip-level record. Session-specific conditions and observations can be added from the trip detail page.
+        </p>
+    </div>
+</section>
+
+@if (_isLoading)
+{
+    <div class="state-card">
+        <h2>Loading trip...</h2>
+        <p class="text-muted">Preparing trip fields and lookup data.</p>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Could not load the trip.</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+}
+else if (_notFound)
+{
+    <div class="state-card">
+        <h2>Trip not found</h2>
+        <p class="text-muted">The requested fishing trip does not exist.</p>
+        <a class="btn btn-primary" href="/trips">Back to Fishing Trips</a>
+    </div>
+}
+else
+{
+    <EditForm Model="_form" OnValidSubmit="HandleValidSubmitAsync" OnInvalidSubmit="HandleInvalidSubmit" FormName="trip-edit-form">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="entry-form-shell">
+            <section class="entry-form-main">
+                <div class="form-card">
+                    <h2>Trip</h2>
+
+                    <div class="form-grid two-column">
+                        <div class="form-field">
+                            <label for="bodyOfWater">Body of Water</label>
+                            <InputSelect id="bodyOfWater" class="form-select" @bind-Value="_form.BodyOfWaterId">
+                                <option value="">Select water</option>
+                                @foreach (var option in _lookups.BodiesOfWater)
+                                {
+                                    <option value="@option.Id">@option.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => _form.BodyOfWaterId" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="tripDate">Date</label>
+                            <InputDate id="tripDate" class="form-control" @bind-Value="_form.TripDate" />
+                            <ValidationMessage For="() => _form.TripDate" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="startTime">Start Time</label>
+                            <InputText id="startTime" type="time" class="form-control" @bind-Value="_form.StartTime" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="endTime">End Time</label>
+                            <InputText id="endTime" type="time" class="form-control" @bind-Value="_form.EndTime" />
+                        </div>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="tripName">Trip Name</label>
+                        <InputText id="tripName" class="form-control" @bind-Value="_form.TripName" />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="purpose">Purpose</label>
+                        <InputText id="purpose" class="form-control" @bind-Value="_form.Purpose" />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="success">Success Rating</label>
+                        <InputSelect id="success" class="form-select" @bind-Value="_form.OverallSuccessRating">
+                            <option value="">Unrated</option>
+                            <option value="1">1 - Poor</option>
+                            <option value="2">2 - Slow</option>
+                            <option value="3">3 - Useful</option>
+                            <option value="4">4 - Good</option>
+                            <option value="5">5 - Repeat this</option>
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="summary">Summary</label>
+                        <InputTextArea id="summary" class="form-control" rows="4" @bind-Value="_form.Summary" />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="lessons">Lessons Learned</label>
+                        <InputTextArea id="lessons" class="form-control" rows="4" @bind-Value="_form.LessonsLearned" />
+                    </div>
+                </div>
+            </section>
+
+            <aside class="entry-form-sidebar">
+                <div class="form-actions-card">
+                    @if (_saveErrorMessage is not null)
+                    {
+                        <div class="alert alert-danger">
+                            <strong>Save failed.</strong>
+                            <pre>@_saveErrorMessage</pre>
+                        </div>
+                    }
+
+                    @if (_validationDebugMessage is not null)
+                    {
+                        <div class="alert alert-warning">
+                            <strong>Validation issue.</strong>
+                            <pre>@_validationDebugMessage</pre>
+                        </div>
+                    }
+
+                    <button type="submit" class="btn btn-primary w-100" disabled="@_isSaving">
+                        @(_isSaving ? "Saving..." : "Save Changes")
+                    </button>
+
+                    <a class="btn btn-outline-secondary w-100" href="@($"/trips/{FishingTripId}")">
+                        Cancel
+                    </a>
+                </div>
+
+                <div class="form-actions-card danger-zone">
+                    <h2>Delete Trip</h2>
+                    <p class="text-muted">
+                        This removes the trip, its sessions, conditions, catches, and observations.
+                    </p>
+
+                    <label class="checkbox-row">
+                        <InputCheckbox @bind-Value="_confirmDelete" />
+                        <span>Confirm delete</span>
+                    </label>
+
+                    @if (_deleteErrorMessage is not null)
+                    {
+                        <div class="alert alert-danger">
+                            <strong>Delete failed.</strong>
+                            <pre>@_deleteErrorMessage</pre>
+                        </div>
+                    }
+
+                    <button type="button" class="btn btn-danger w-100" disabled="@(!_confirmDelete || _isDeleting)" @onclick="HandleDeleteAsync">
+                        @(_isDeleting ? "Deleting..." : "Delete Trip")
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public long FishingTripId { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private bool _isDeleting;
+    private bool _confirmDelete;
+    private bool _notFound;
+    private string? _errorMessage;
+    private string? _saveErrorMessage;
+    private string? _deleteErrorMessage;
+    private string? _validationDebugMessage;
+    private FishingTripLookupViewModel _lookups = new();
+    private FishingTripFormViewModel _form = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+
+        try
+        {
+            _lookups = await FishingTripService.GetLookupsAsync();
+            var form = await FishingTripService.GetTripFormAsync(FishingTripId);
+
+            if (form is null)
+            {
+                _notFound = true;
+                return;
+            }
+
+            _form = form;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleValidSubmitAsync()
+    {
+        _isSaving = true;
+        _saveErrorMessage = null;
+        _validationDebugMessage = null;
+
+        try
+        {
+            var updated = await FishingTripService.UpdateTripAsync(FishingTripId, _form);
+
+            if (!updated)
+            {
+                _notFound = true;
+                return;
+            }
+
+            NavigationManager.NavigateTo($"/trips/{FishingTripId}");
+        }
+        catch (Exception ex)
+        {
+            _saveErrorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task HandleDeleteAsync()
+    {
+        if (!_confirmDelete)
+        {
+            return;
+        }
+
+        _isDeleting = true;
+        _deleteErrorMessage = null;
+
+        try
+        {
+            await FishingTripService.DeleteTripAsync(FishingTripId);
+            NavigationManager.NavigateTo("/trips");
+        }
+        catch (Exception ex)
+        {
+            _deleteErrorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+
+    private void HandleInvalidSubmit(EditContext editContext)
+    {
+        var validationMessages = editContext
+            .GetValidationMessages()
+            .ToList();
+
+        _validationDebugMessage = validationMessages.Count == 0
+            ? "The form is invalid, but no validation messages were returned."
+            : string.Join(Environment.NewLine, validationMessages);
+    }
+}

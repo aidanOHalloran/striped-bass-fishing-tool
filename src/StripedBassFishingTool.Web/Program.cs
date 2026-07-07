@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using StripedBassFishingTool.Web.Components;
 using StripedBassFishingTool.Web.Data;
-using StripedBassFishingTool.Web.Components;
 using StripedBassFishingTool.Web.Services.UserProfile;
 using StripedBassFishingTool.Web.Services.Knowledge;
 using StripedBassFishingTool.Web.Services.Media;
 using StripedBassFishingTool.Web.Options;
 using StripedBassFishingTool.Web.Services.Reference;
+using StripedBassFishingTool.Web.Services.FishingLogs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +33,9 @@ builder.Services.AddScoped<UserProfileService>();
 // Knowledge services
 builder.Services.AddScoped<KnowledgeEntryService>();
 builder.Services.AddScoped<KnowledgeEntrySeedWriter>();
+
+// Fishing log services
+builder.Services.AddScoped<FishingTripService>();
 
 // Reference data services
 builder.Services.AddSingleton<ReferenceTableRegistry>();

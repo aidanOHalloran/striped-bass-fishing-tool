@@ -1,0 +1,257 @@
+@page "/trips/{FishingTripId:long}"
+@using StripedBassFishingTool.Web.Services.FishingLogs
+@using StripedBassFishingTool.Web.ViewModels.FishingLogs
+@inject FishingTripService FishingTripService
+
+<PageTitle>@(_trip?.Title ?? "Fishing Trip")</PageTitle>
+
+@if (_isLoading)
+{
+    <div class="state-card">
+        <h2>Loading trip...</h2>
+        <p class="text-muted">Reading trip details and sessions.</p>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Could not load the trip.</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+}
+else if (_trip is null)
+{
+    <div class="state-card">
+        <h2>Trip not found</h2>
+        <p class="text-muted">The requested fishing trip does not exist.</p>
+        <a class="btn btn-primary" href="/trips">Back to Fishing Trips</a>
+    </div>
+}
+else
+{
+<section class="detail-shell">
+        <article class="detail-main">
+            <a class="back-link" href="/trips">&larr; Back to Fishing Trips</a>
+
+            <div class="detail-card">
+                <header class="detail-header">
+                    <div>
+                        <p class="eyebrow">@_trip.TripDate.ToString("MMMM d, yyyy")</p>
+                        <h1>@_trip.Title</h1>
+                        <p class="detail-source text-muted">
+                            <span>@_trip.BodyOfWaterName</span>
+                            @if (!string.IsNullOrWhiteSpace(_trip.State))
+                            {
+                                <span>, @_trip.State</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(_trip.TimeRange))
+                            {
+                                <span> &middot; @_trip.TimeRange</span>
+                            }
+                        </p>
+                    </div>
+
+                    <div class="detail-header-actions">
+                        <span class="confidence-pill confidence-@(_trip.OverallSuccessRating ?? 3)">
+                            @(_trip.OverallSuccessRating is null ? "Unrated" : $"{_trip.OverallSuccessRating}/5")
+                        </span>
+                        <a class="btn btn-outline-secondary" href="@($"/trips/{FishingTripId}/edit")">
+                            Edit Trip
+                        </a>
+                    </div>
+                </header>
+
+                @if (!string.IsNullOrWhiteSpace(_trip.Purpose))
+                {
+                    <div class="detail-summary-panel">
+                        <h2>Purpose</h2>
+                        <p>@_trip.Purpose</p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_trip.Summary))
+                {
+                    <div class="detail-body">
+                        <h2>Summary</h2>
+                        <p>@_trip.Summary</p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_trip.LessonsLearned))
+                {
+                    <div class="detail-summary-panel">
+                        <h2>Lessons Learned</h2>
+                        <p>@_trip.LessonsLearned</p>
+                    </div>
+                }
+            </div>
+
+            <section class="trip-session-list">
+                <div class="section-heading-row">
+                    <h2>Sessions</h2>
+                    <div class="section-heading-actions">
+                        <span>@_trip.Sessions.Count total</span>
+                        <a class="btn btn-primary btn-sm" href="@($"/trips/{FishingTripId}/sessions/new")">
+                            Add Session
+                        </a>
+                    </div>
+                </div>
+
+                @if (_trip.Sessions.Count == 0)
+                {
+                    <div class="state-card">
+                        <h2>No sessions yet</h2>
+                        <p class="text-muted">Session, catch, and technique forms will build on this trip record.</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var session in _trip.Sessions)
+                    {
+                        <article class="session-card">
+                            <div class="trip-card-header">
+                                <div>
+                                    <h3>@session.Title</h3>
+                                    <p class="source-line">
+                                        @if (!string.IsNullOrWhiteSpace(session.LocationName))
+                                        {
+                                            <span>@session.LocationName</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(session.TimeRange))
+                                        {
+                                            <span> &middot; @session.TimeRange</span>
+                                        }
+                                    </p>
+                                </div>
+
+                                <span class="confidence-pill confidence-3">
+                                    @session.CatchCount catch@(session.CatchCount == 1 ? "" : "es")
+                                </span>
+                            </div>
+
+                            <div class="metadata-section">
+                                @RenderChipGroup("Conditions", GetConditionChips(session))
+                                @RenderChipGroup("Structure", session.Structures)
+                                @RenderChipGroup("Techniques", session.Techniques)
+                                @RenderChipGroup("Forage", session.ForageSpecies)
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(session.Notes))
+                            {
+                                <p class="knowledge-summary">@session.Notes</p>
+                            }
+                        </article>
+                    }
+                }
+            </section>
+        </article>
+
+        <aside class="detail-sidebar">
+            <div class="side-card">
+                <h2>Trip Snapshot</h2>
+                <dl class="snapshot-list">
+                    <div>
+                        <dt>Water</dt>
+                        <dd>@_trip.BodyOfWaterName</dd>
+                    </div>
+                    <div>
+                        <dt>Date</dt>
+                        <dd>@_trip.TripDate.ToString("MMM d, yyyy")</dd>
+                    </div>
+                    <div>
+                        <dt>Sessions</dt>
+                        <dd>@_trip.Sessions.Count</dd>
+                    </div>
+                    <div>
+                        <dt>Catches</dt>
+                        <dd>@_trip.Sessions.Sum(x => x.CatchCount)</dd>
+                    </div>
+                </dl>
+            </div>
+        </aside>
+    </section>
+}
+
+@code {
+    [Parameter]
+    public long FishingTripId { get; set; }
+
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private FishingTripDetailViewModel? _trip;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            _trip = await FishingTripService.GetTripDetailAsync(FishingTripId);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static IReadOnlyList<string> GetConditionChips(FishingSessionSummaryViewModel session)
+    {
+        var chips = new List<string>();
+
+        AddIfPresent(chips, session.LightCondition);
+        AddIfPresent(chips, session.WaterClarity);
+        AddIfPresent(chips, session.MoonPhase);
+        AddIfPresent(chips, session.WaterTemperatureBand);
+        AddIfPresent(chips, session.WeatherPattern);
+        AddIfPresent(chips, session.WindCondition);
+
+        if (session.WaterTemperatureF.HasValue)
+        {
+            chips.Add($"{session.WaterTemperatureF.Value:0.#} deg F");
+        }
+
+        return chips;
+    }
+
+    private static void AddIfPresent(List<string> values, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            values.Add(value);
+        }
+    }
+
+    private static RenderFragment RenderChipGroup(string label, IReadOnlyList<string> values) => builder =>
+    {
+        if (values.Count == 0)
+        {
+            return;
+        }
+
+        var sequence = 0;
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "chip-group");
+
+        builder.OpenElement(sequence++, "span");
+        builder.AddAttribute(sequence++, "class", "chip-label");
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "chips");
+
+        foreach (var value in values)
+        {
+            builder.OpenElement(sequence++, "span");
+            builder.AddAttribute(sequence++, "class", "chip");
+            builder.AddContent(sequence++, value);
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+}

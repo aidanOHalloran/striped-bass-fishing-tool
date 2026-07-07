@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using StripedBassFishingTool.Web.Models.FishingLogs;
 using StripedBassFishingTool.Web.Models.Knowledge;
 using StripedBassFishingTool.Web.Models.Media;
 using StripedBassFishingTool.Web.Models.Reference;
@@ -16,6 +17,18 @@ public sealed class AppDbContext : DbContext
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<KnowledgeEntry> KnowledgeEntries => Set<KnowledgeEntry>();
 
+    public DbSet<BodyOfWater> BodiesOfWater => Set<BodyOfWater>();
+
+    public DbSet<FishingLocation> FishingLocations => Set<FishingLocation>();
+
+    public DbSet<FishingTrip> FishingTrips => Set<FishingTrip>();
+
+    public DbSet<FishingSession> FishingSessions => Set<FishingSession>();
+
+    public DbSet<EnvironmentSnapshot> EnvironmentSnapshots => Set<EnvironmentSnapshot>();
+
+    public DbSet<CatchRecord> CatchRecords => Set<CatchRecord>();
+
     public DbSet<Tag> Tags => Set<Tag>();
 
     public DbSet<Month> Months => Set<Month>();
@@ -30,6 +43,22 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<ForageSpecies> ForageSpecies => Set<ForageSpecies>();
 
+    public DbSet<WaterClarity> WaterClarities => Set<WaterClarity>();
+
+    public DbSet<WeatherPattern> WeatherPatterns => Set<WeatherPattern>();
+
+    public DbSet<WindCondition> WindConditions => Set<WindCondition>();
+
+    public DbSet<LightCondition> LightConditions => Set<LightCondition>();
+
+    public DbSet<MoonPhase> MoonPhases => Set<MoonPhase>();
+
+    public DbSet<Presentation> Presentations => Set<Presentation>();
+
+    public DbSet<LureType> LureTypes => Set<LureType>();
+
+    public DbSet<FlyPattern> FlyPatterns => Set<FlyPattern>();
+
     public DbSet<SeededImage> SeededImages => Set<SeededImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -40,6 +69,7 @@ public sealed class AppDbContext : DbContext
         ConfigureKnowledgeEntry(modelBuilder);
         ConfigureReferenceTables(modelBuilder);
         ConfigureKnowledgeRelationships(modelBuilder);
+        ConfigureFishingLogs(modelBuilder);
         ConfigureMedia(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
@@ -244,6 +274,298 @@ public sealed class AppDbContext : DbContext
             entity.Property(e => e.BehaviorNotes).HasColumnName("behavior_notes");
             entity.Property(e => e.BaitHandlingNotes).HasColumnName("bait_handling_notes");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<WaterClarity>(entity =>
+        {
+            entity.ToTable("water_clarity");
+            entity.HasKey(e => e.WaterClarityId);
+            entity.Property(e => e.WaterClarityId).HasColumnName("water_clarity_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.VisibilityMinFt).HasColumnName("visibility_min_ft");
+            entity.Property(e => e.VisibilityMaxFt).HasColumnName("visibility_max_ft");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.FishingNotes).HasColumnName("fishing_notes");
+            entity.Property(e => e.DisplayOrder).HasColumnName("display_order");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<WeatherPattern>(entity =>
+        {
+            entity.ToTable("weather_pattern");
+            entity.HasKey(e => e.WeatherPatternId);
+            entity.Property(e => e.WeatherPatternId).HasColumnName("weather_pattern_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.FishingNotes).HasColumnName("fishing_notes");
+            entity.Property(e => e.DisplayOrder).HasColumnName("display_order");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<WindCondition>(entity =>
+        {
+            entity.ToTable("wind_condition");
+            entity.HasKey(e => e.WindConditionId);
+            entity.Property(e => e.WindConditionId).HasColumnName("wind_condition_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.MinSpeedMph).HasColumnName("min_speed_mph");
+            entity.Property(e => e.MaxSpeedMph).HasColumnName("max_speed_mph");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.FishingNotes).HasColumnName("fishing_notes");
+            entity.Property(e => e.DisplayOrder).HasColumnName("display_order");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<LightCondition>(entity =>
+        {
+            entity.ToTable("light_condition");
+            entity.HasKey(e => e.LightConditionId);
+            entity.Property(e => e.LightConditionId).HasColumnName("light_condition_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.FishingNotes).HasColumnName("fishing_notes");
+            entity.Property(e => e.DisplayOrder).HasColumnName("display_order");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<MoonPhase>(entity =>
+        {
+            entity.ToTable("moon_phase");
+            entity.HasKey(e => e.MoonPhaseId);
+            entity.Property(e => e.MoonPhaseId).HasColumnName("moon_phase_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.IlluminationMinPercent).HasColumnName("illumination_min_percent");
+            entity.Property(e => e.IlluminationMaxPercent).HasColumnName("illumination_max_percent");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.FishingNotes).HasColumnName("fishing_notes");
+            entity.Property(e => e.DisplayOrder).HasColumnName("display_order");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<Presentation>(entity =>
+        {
+            entity.ToTable("presentation");
+            entity.HasKey(e => e.PresentationId);
+            entity.Property(e => e.PresentationId).HasColumnName("presentation_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.RetrieveSpeed).HasColumnName("retrieve_speed");
+            entity.Property(e => e.DepthZone).HasColumnName("depth_zone");
+            entity.Property(e => e.FishingNotes).HasColumnName("fishing_notes");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<LureType>(entity =>
+        {
+            entity.ToTable("lure_type");
+            entity.HasKey(e => e.LureTypeId);
+            entity.Property(e => e.LureTypeId).HasColumnName("lure_type_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Category).HasColumnName("category");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.BestConditionsNotes).HasColumnName("best_conditions_notes");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<FlyPattern>(entity =>
+        {
+            entity.ToTable("fly_pattern");
+            entity.HasKey(e => e.FlyPatternId);
+            entity.Property(e => e.FlyPatternId).HasColumnName("fly_pattern_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.BaitfishImitation).HasColumnName("baitfish_imitation");
+            entity.Property(e => e.TypicalSizeRange).HasColumnName("typical_size_range");
+            entity.Property(e => e.SinkBehavior).HasColumnName("sink_behavior");
+            entity.Property(e => e.BestConditionsNotes).HasColumnName("best_conditions_notes");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+    }
+
+    private static void ConfigureFishingLogs(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<BodyOfWater>(entity =>
+        {
+            entity.ToTable("body_of_water");
+            entity.HasKey(e => e.BodyOfWaterId);
+            entity.Property(e => e.BodyOfWaterId).HasColumnName("body_of_water_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.WaterbodyType).HasColumnName("waterbody_type");
+            entity.Property(e => e.State).HasColumnName("state");
+            entity.Property(e => e.Region).HasColumnName("region");
+            entity.Property(e => e.NearestCity).HasColumnName("nearest_city");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.HasStripedBass).HasColumnName("has_striped_bass");
+            entity.Property(e => e.HasHybridStripedBass).HasColumnName("has_hybrid_striped_bass");
+            entity.Property(e => e.PrimaryForageNotes).HasColumnName("primary_forage_notes");
+            entity.Property(e => e.ThermoclineNotes).HasColumnName("thermocline_notes");
+            entity.Property(e => e.CurrentGenerationNotes).HasColumnName("current_generation_notes");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<FishingLocation>(entity =>
+        {
+            entity.ToTable("fishing_location");
+            entity.HasKey(e => e.FishingLocationId);
+            entity.Property(e => e.FishingLocationId).HasColumnName("fishing_location_id");
+            entity.Property(e => e.BodyOfWaterId).HasColumnName("body_of_water_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Latitude).HasColumnName("latitude");
+            entity.Property(e => e.Longitude).HasColumnName("longitude");
+            entity.Property(e => e.GeneralArea).HasColumnName("general_area");
+            entity.Property(e => e.IsSensitiveSpot).HasColumnName("is_sensitive_spot");
+            entity.Property(e => e.DefaultStructureTypeId).HasColumnName("default_structure_type_id");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasOne(e => e.BodyOfWater)
+                .WithMany(e => e.FishingLocations)
+                .HasForeignKey(e => e.BodyOfWaterId);
+
+            entity.HasOne(e => e.DefaultStructureType)
+                .WithMany()
+                .HasForeignKey(e => e.DefaultStructureTypeId);
+        });
+
+        modelBuilder.Entity<FishingTrip>(entity =>
+        {
+            entity.ToTable("fishing_trip");
+            entity.HasKey(e => e.FishingTripId);
+            entity.Property(e => e.FishingTripId).HasColumnName("fishing_trip_id");
+            entity.Property(e => e.BodyOfWaterId).HasColumnName("body_of_water_id");
+            entity.Property(e => e.TripName).HasColumnName("trip_name");
+            entity.Property(e => e.TripDate).HasColumnName("trip_date");
+            entity.Property(e => e.StartTime).HasColumnName("start_time");
+            entity.Property(e => e.EndTime).HasColumnName("end_time");
+            entity.Property(e => e.Purpose).HasColumnName("purpose");
+            entity.Property(e => e.OverallSuccessRating).HasColumnName("overall_success_rating");
+            entity.Property(e => e.Summary).HasColumnName("summary");
+            entity.Property(e => e.LessonsLearned).HasColumnName("lessons_learned");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasOne(e => e.BodyOfWater)
+                .WithMany(e => e.FishingTrips)
+                .HasForeignKey(e => e.BodyOfWaterId);
+        });
+
+        modelBuilder.Entity<FishingSession>(entity =>
+        {
+            entity.ToTable("fishing_session");
+            entity.HasKey(e => e.FishingSessionId);
+            entity.Property(e => e.FishingSessionId).HasColumnName("fishing_session_id");
+            entity.Property(e => e.FishingTripId).HasColumnName("fishing_trip_id");
+            entity.Property(e => e.FishingLocationId).HasColumnName("fishing_location_id");
+            entity.Property(e => e.SessionName).HasColumnName("session_name");
+            entity.Property(e => e.StartTime).HasColumnName("start_time");
+            entity.Property(e => e.EndTime).HasColumnName("end_time");
+            entity.Property(e => e.LightConditionId).HasColumnName("light_condition_id");
+            entity.Property(e => e.WaterClarityId).HasColumnName("water_clarity_id");
+            entity.Property(e => e.MoonPhaseId).HasColumnName("moon_phase_id");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.SuccessRating).HasColumnName("success_rating");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasOne(e => e.FishingTrip)
+                .WithMany(e => e.FishingSessions)
+                .HasForeignKey(e => e.FishingTripId);
+
+            entity.HasOne(e => e.FishingLocation)
+                .WithMany(e => e.FishingSessions)
+                .HasForeignKey(e => e.FishingLocationId);
+        });
+
+        modelBuilder.Entity<EnvironmentSnapshot>(entity =>
+        {
+            entity.ToTable("environment_snapshot");
+            entity.HasKey(e => e.EnvironmentSnapshotId);
+            entity.Property(e => e.EnvironmentSnapshotId).HasColumnName("environment_snapshot_id");
+            entity.Property(e => e.FishingSessionId).HasColumnName("fishing_session_id");
+            entity.Property(e => e.ObservedAt).HasColumnName("observed_at");
+            entity.Property(e => e.WaterTemperatureF).HasColumnName("water_temperature_f");
+            entity.Property(e => e.AirTemperatureF).HasColumnName("air_temperature_f");
+            entity.Property(e => e.WaterTemperatureBandId).HasColumnName("water_temperature_band_id");
+            entity.Property(e => e.WeatherPatternId).HasColumnName("weather_pattern_id");
+            entity.Property(e => e.WindConditionId).HasColumnName("wind_condition_id");
+            entity.Property(e => e.WindDirection).HasColumnName("wind_direction");
+            entity.Property(e => e.WindSpeedMph).HasColumnName("wind_speed_mph");
+            entity.Property(e => e.BarometricPressureInhg).HasColumnName("barometric_pressure_inhg");
+            entity.Property(e => e.PressureTrend).HasColumnName("pressure_trend");
+            entity.Property(e => e.CloudCoverPercent).HasColumnName("cloud_cover_percent");
+            entity.Property(e => e.PrecipitationNotes).HasColumnName("precipitation_notes");
+            entity.Property(e => e.CurrentFlowNotes).HasColumnName("current_flow_notes");
+            entity.Property(e => e.GenerationStatus).HasColumnName("generation_status");
+            entity.Property(e => e.ThermoclineDepthFt).HasColumnName("thermocline_depth_ft");
+            entity.Property(e => e.DissolvedOxygenNotes).HasColumnName("dissolved_oxygen_notes");
+            entity.Property(e => e.BaitVisible).HasColumnName("bait_visible");
+            entity.Property(e => e.SurfaceActivity).HasColumnName("surface_activity");
+            entity.Property(e => e.BirdActivity).HasColumnName("bird_activity");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasOne(e => e.FishingSession)
+                .WithMany(e => e.EnvironmentSnapshots)
+                .HasForeignKey(e => e.FishingSessionId);
+        });
+
+        modelBuilder.Entity<CatchRecord>(entity =>
+        {
+            entity.ToTable("catch_record");
+            entity.HasKey(e => e.CatchRecordId);
+            entity.Property(e => e.CatchRecordId).HasColumnName("catch_record_id");
+            entity.Property(e => e.FishingSessionId).HasColumnName("fishing_session_id");
+            entity.Property(e => e.CaughtAt).HasColumnName("caught_at");
+            entity.Property(e => e.Species).HasColumnName("species");
+            entity.Property(e => e.LengthInches).HasColumnName("length_inches");
+            entity.Property(e => e.WeightLbs).HasColumnName("weight_lbs");
+            entity.Property(e => e.EstimatedWeight).HasColumnName("estimated_weight");
+            entity.Property(e => e.DepthCaughtFt).HasColumnName("depth_caught_ft");
+            entity.Property(e => e.FishDepthObservedFt).HasColumnName("fish_depth_observed_ft");
+            entity.Property(e => e.BottomDepthFt).HasColumnName("bottom_depth_ft");
+            entity.Property(e => e.TechniqueId).HasColumnName("technique_id");
+            entity.Property(e => e.PresentationId).HasColumnName("presentation_id");
+            entity.Property(e => e.LureTypeId).HasColumnName("lure_type_id");
+            entity.Property(e => e.FlyPatternId).HasColumnName("fly_pattern_id");
+            entity.Property(e => e.ForageSpeciesId).HasColumnName("forage_species_id");
+            entity.Property(e => e.WasReleased).HasColumnName("was_released");
+            entity.Property(e => e.ReleaseCondition).HasColumnName("release_condition");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<TripTechniqueUsed>(entity =>
+        {
+            entity.ToTable("trip_technique_used");
+            entity.HasKey(e => new { e.FishingSessionId, e.TechniqueId });
+            entity.Property(e => e.FishingSessionId).HasColumnName("fishing_session_id");
+            entity.Property(e => e.TechniqueId).HasColumnName("technique_id");
+            entity.Property(e => e.PresentationId).HasColumnName("presentation_id");
+            entity.Property(e => e.LureTypeId).HasColumnName("lure_type_id");
+            entity.Property(e => e.FlyPatternId).HasColumnName("fly_pattern_id");
+            entity.Property(e => e.EffectivenessRating).HasColumnName("effectiveness_rating");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+        });
+
+        modelBuilder.Entity<TripStructureFished>(entity =>
+        {
+            entity.ToTable("trip_structure_fished");
+            entity.HasKey(e => new { e.FishingSessionId, e.StructureTypeId });
+            entity.Property(e => e.FishingSessionId).HasColumnName("fishing_session_id");
+            entity.Property(e => e.StructureTypeId).HasColumnName("structure_type_id");
+            entity.Property(e => e.EffectivenessRating).HasColumnName("effectiveness_rating");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+        });
+
+        modelBuilder.Entity<TripForageObserved>(entity =>
+        {
+            entity.ToTable("trip_forage_observed");
+            entity.HasKey(e => new { e.FishingSessionId, e.ForageSpeciesId });
+            entity.Property(e => e.FishingSessionId).HasColumnName("fishing_session_id");
+            entity.Property(e => e.ForageSpeciesId).HasColumnName("forage_species_id");
+            entity.Property(e => e.ObservationMethod).HasColumnName("observation_method");
+            entity.Property(e => e.EstimatedAbundance).HasColumnName("estimated_abundance");
+            entity.Property(e => e.DepthObservedFt).HasColumnName("depth_observed_ft");
+            entity.Property(e => e.Notes).HasColumnName("notes");
         });
     }
 

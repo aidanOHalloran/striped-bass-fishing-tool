@@ -1,0 +1,415 @@
+@page "/trips/{FishingTripId:long}/sessions/new"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Forms
+@using StripedBassFishingTool.Web.Services.FishingLogs
+@using StripedBassFishingTool.Web.ViewModels.FishingLogs
+@using StripedBassFishingTool.Web.ViewModels.Knowledge
+@inject FishingTripService FishingTripService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Add Fishing Session</PageTitle>
+
+<section class="page-header">
+    <div>
+        <a class="back-link" href="@($"/trips/{FishingTripId}")">&larr; Back to Trip</a>
+        <p class="eyebrow">New Session</p>
+        <h1>Add Session</h1>
+        <p class="text-muted page-intro">
+            Add another fishing window to the trip with its location, conditions, activity, tactics, structure, and forage.
+        </p>
+    </div>
+</section>
+
+@if (_isLoading)
+{
+    <div class="state-card">
+        <h2>Loading form...</h2>
+        <p class="text-muted">Loading locations and condition lookups.</p>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Could not prepare the form.</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+}
+else
+{
+    <EditForm Model="_form" OnValidSubmit="HandleValidSubmitAsync" OnInvalidSubmit="HandleInvalidSubmit" FormName="session-create-form">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="entry-form-shell">
+            <section class="entry-form-main">
+                <div class="form-card">
+                    <h2>Session</h2>
+
+                    <div class="form-field">
+                        <label for="sessionName">Session Name</label>
+                        <InputText id="sessionName" class="form-control" placeholder="Dawn point, midday scouting, night dock lights" @bind-Value="_form.SessionName" />
+                    </div>
+
+                    <div class="form-grid two-column">
+                        <div class="form-field">
+                            <label for="startTime">Start Time</label>
+                            <InputText id="startTime" type="time" class="form-control" @bind-Value="_form.StartTime" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="endTime">End Time</label>
+                            <InputText id="endTime" type="time" class="form-control" @bind-Value="_form.EndTime" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="success">Success Rating</label>
+                            <InputSelect id="success" class="form-select" @bind-Value="_form.SuccessRating">
+                                <option value="">Unrated</option>
+                                <option value="1">1 - Poor</option>
+                                <option value="2">2 - Slow</option>
+                                <option value="3">3 - Useful</option>
+                                <option value="4">4 - Good</option>
+                                <option value="5">5 - Repeat this</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <h2>Location</h2>
+
+                    <label class="checkbox-row">
+                        <InputCheckbox @bind-Value="_form.CreateNewLocation" />
+                        <span>Add a new location</span>
+                    </label>
+
+                    @if (!_form.CreateNewLocation)
+                    {
+                        <div class="form-field">
+                            <label for="location">Historical Location</label>
+                            <InputSelect id="location" class="form-select" @bind-Value="_form.FishingLocationId">
+                                <option value="">No specific location</option>
+                                @foreach (var location in AvailableLocations)
+                                {
+                                    <option value="@location.Id">@location.DisplayName</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="form-grid two-column">
+                            <div class="form-field">
+                                <label for="newLocationName">Location Name</label>
+                                <InputText id="newLocationName" class="form-control" @bind-Value="_form.NewLocationName" />
+                            </div>
+
+                            <div class="form-field">
+                                <label for="newLocationArea">Specific Area</label>
+                                <InputText id="newLocationArea" class="form-control" @bind-Value="_form.NewLocationGeneralArea" />
+                            </div>
+
+                            @RenderLookupSelect("Default Structure", "defaultStructure", _lookups.StructureTypes, _form.NewLocationDefaultStructureTypeId, value => _form.NewLocationDefaultStructureTypeId = value)
+
+                            <label class="checkbox-row inline-checkbox">
+                                <InputCheckbox @bind-Value="_form.NewLocationIsSensitiveSpot" />
+                                <span>Sensitive spot</span>
+                            </label>
+                        </div>
+                    }
+                </div>
+
+                <div class="form-card">
+                    <h2>Conditions</h2>
+
+                    <div class="form-grid two-column">
+                        @RenderLookupSelect("Light", "light", _lookups.LightConditions, _form.LightConditionId, value => _form.LightConditionId = value)
+                        @RenderLookupSelect("Water Clarity", "clarity", _lookups.WaterClarities, _form.WaterClarityId, value => _form.WaterClarityId = value)
+                        @RenderLookupSelect("Moon", "moon", _lookups.MoonPhases, _form.MoonPhaseId, value => _form.MoonPhaseId = value)
+                        @RenderLookupSelect("Water Temperature Band", "tempBand", _lookups.WaterTemperatureBands, _form.WaterTemperatureBandId, value => _form.WaterTemperatureBandId = value)
+                        @RenderLookupSelect("Weather", "weather", _lookups.WeatherPatterns, _form.WeatherPatternId, value => _form.WeatherPatternId = value)
+                        @RenderLookupSelect("Wind", "wind", _lookups.WindConditions, _form.WindConditionId, value => _form.WindConditionId = value)
+
+                        <div class="form-field">
+                            <label for="waterTemp">Water Temp &deg;F</label>
+                            <InputNumber id="waterTemp" class="form-control" @bind-Value="_form.WaterTemperatureF" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="windSpeed">Wind Speed MPH</label>
+                            <InputNumber id="windSpeed" class="form-control" @bind-Value="_form.WindSpeedMph" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="windDirection">Wind Direction</label>
+                            <InputText id="windDirection" class="form-control" placeholder="N, SW, upriver, downstream" @bind-Value="_form.WindDirection" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="thermocline">Thermocline Depth FT</label>
+                            <InputNumber id="thermocline" class="form-control" @bind-Value="_form.ThermoclineDepthFt" />
+                        </div>
+                    </div>
+
+                    <div class="form-grid two-column">
+                        <div class="form-field">
+                            <label for="current">Current / Flow Notes</label>
+                            <InputText id="current" class="form-control" @bind-Value="_form.CurrentFlowNotes" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="generation">Generation Status</label>
+                            <InputText id="generation" class="form-control" @bind-Value="_form.GenerationStatus" />
+                        </div>
+                    </div>
+
+                    <div class="checkbox-options session-flags">
+                        @RenderNullableBoolCheckbox("Bait visible", _form.BaitVisible, value => _form.BaitVisible = value)
+                        @RenderNullableBoolCheckbox("Surface activity", _form.SurfaceActivity, value => _form.SurfaceActivity = value)
+                        @RenderNullableBoolCheckbox("Bird activity", _form.BirdActivity, value => _form.BirdActivity = value)
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <h2>Fishing Metadata</h2>
+
+                    @RenderCheckboxGroup("Techniques", _lookups.Techniques, _form.SelectedTechniqueIds)
+                    @RenderCheckboxGroup("Structure", _lookups.StructureTypes, _form.SelectedStructureTypeIds)
+                    @RenderCheckboxGroup("Forage", _lookups.ForageSpecies, _form.SelectedForageSpeciesIds)
+                </div>
+
+                <div class="form-card">
+                    <h2>Notes</h2>
+
+                    <div class="form-field">
+                        <label for="notes">Session Notes</label>
+                        <InputTextArea id="notes" class="form-control" rows="5" @bind-Value="_form.Notes" />
+                    </div>
+                </div>
+            </section>
+
+            <aside class="entry-form-sidebar">
+                <div class="form-actions-card">
+                    @if (_saveErrorMessage is not null)
+                    {
+                        <div class="alert alert-danger">
+                            <strong>Save failed.</strong>
+                            <pre>@_saveErrorMessage</pre>
+                        </div>
+                    }
+
+                    @if (_validationDebugMessage is not null)
+                    {
+                        <div class="alert alert-warning">
+                            <strong>Validation issue.</strong>
+                            <pre>@_validationDebugMessage</pre>
+                        </div>
+                    }
+
+                    <button type="submit" class="btn btn-primary w-100" disabled="@_isSaving">
+                        @(_isSaving ? "Saving..." : "Save Session")
+                    </button>
+
+                    <a class="btn btn-outline-secondary w-100" href="@($"/trips/{FishingTripId}")">
+                        Cancel
+                    </a>
+                </div>
+            </aside>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public long FishingTripId { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _errorMessage;
+    private string? _saveErrorMessage;
+    private string? _validationDebugMessage;
+    private long? _bodyOfWaterId;
+    private FishingTripLookupViewModel _lookups = new();
+    private FishingSessionFormViewModel _form = new();
+
+    private IEnumerable<FishingLocationLookupViewModel> AvailableLocations =>
+        _bodyOfWaterId.HasValue
+            ? _lookups.Locations.Where(x => x.BodyOfWaterId == _bodyOfWaterId)
+            : _lookups.Locations;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _lookups = await FishingTripService.GetLookupsAsync();
+            _bodyOfWaterId = await FishingTripService.GetTripBodyOfWaterIdAsync(FishingTripId);
+
+            if (_bodyOfWaterId is null)
+            {
+                _errorMessage = "The trip no longer exists.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleValidSubmitAsync()
+    {
+        _isSaving = true;
+        _saveErrorMessage = null;
+        _validationDebugMessage = null;
+
+        try
+        {
+            var added = await FishingTripService.AddSessionAsync(FishingTripId, _form);
+
+            if (!added)
+            {
+                _saveErrorMessage = "The trip no longer exists.";
+                return;
+            }
+
+            NavigationManager.NavigateTo($"/trips/{FishingTripId}");
+        }
+        catch (Exception ex)
+        {
+            _saveErrorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void HandleInvalidSubmit(EditContext editContext)
+    {
+        var validationMessages = editContext
+            .GetValidationMessages()
+            .ToList();
+
+        _validationDebugMessage = validationMessages.Count == 0
+            ? "The form is invalid, but no validation messages were returned."
+            : string.Join(Environment.NewLine, validationMessages);
+    }
+
+    private static RenderFragment RenderLookupSelect(
+        string label,
+        string id,
+        IReadOnlyList<LookupOptionViewModel> options,
+        int? selectedValue,
+        Action<int?> setValue) => builder =>
+    {
+        var sequence = 0;
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "form-field");
+        builder.OpenElement(sequence++, "label");
+        builder.AddAttribute(sequence++, "for", id);
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+        builder.OpenElement(sequence++, "select");
+        builder.AddAttribute(sequence++, "id", id);
+        builder.AddAttribute(sequence++, "class", "form-select");
+        builder.AddAttribute(sequence++, "value", selectedValue?.ToString() ?? string.Empty);
+        builder.AddAttribute(sequence++, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(setValue.Target ?? new object(), args =>
+        {
+            var value = args.Value?.ToString();
+            setValue(int.TryParse(value, out var parsedValue) ? parsedValue : null);
+        }));
+        builder.OpenElement(sequence++, "option");
+        builder.AddAttribute(sequence++, "value", string.Empty);
+        builder.AddContent(sequence++, "None");
+        builder.CloseElement();
+
+        foreach (var option in options)
+        {
+            builder.OpenElement(sequence++, "option");
+            builder.AddAttribute(sequence++, "value", option.Id.ToString());
+            builder.AddContent(sequence++, option.Name);
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private static RenderFragment RenderCheckboxGroup(
+        string label,
+        IReadOnlyList<LookupOptionViewModel> options,
+        List<int> selectedIds) => builder =>
+    {
+        if (options.Count == 0)
+        {
+            return;
+        }
+
+        var sequence = 0;
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "checkbox-group");
+        builder.OpenElement(sequence++, "h3");
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "checkbox-options");
+
+        foreach (var option in options)
+        {
+            builder.OpenElement(sequence++, "label");
+            builder.AddAttribute(sequence++, "class", "checkbox-pill");
+            builder.OpenElement(sequence++, "input");
+            builder.AddAttribute(sequence++, "type", "checkbox");
+            builder.AddAttribute(sequence++, "checked", selectedIds.Contains(option.Id));
+            builder.AddAttribute(sequence++, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(selectedIds, args =>
+            {
+                var isSelected = args.Value is bool value && value;
+
+                if (isSelected && !selectedIds.Contains(option.Id))
+                {
+                    selectedIds.Add(option.Id);
+                }
+                else if (!isSelected)
+                {
+                    selectedIds.Remove(option.Id);
+                }
+            }));
+            builder.CloseElement();
+            builder.OpenElement(sequence++, "span");
+            builder.AddContent(sequence++, option.Name);
+            builder.CloseElement();
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private static RenderFragment RenderNullableBoolCheckbox(
+        string label,
+        bool? value,
+        Action<bool?> setValue) => builder =>
+    {
+        var sequence = 0;
+
+        builder.OpenElement(sequence++, "label");
+        builder.AddAttribute(sequence++, "class", "checkbox-pill");
+        builder.OpenElement(sequence++, "input");
+        builder.AddAttribute(sequence++, "type", "checkbox");
+        builder.AddAttribute(sequence++, "checked", value == true);
+        builder.AddAttribute(sequence++, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(setValue.Target ?? new object(), args =>
+        {
+            setValue(args.Value is bool isChecked && isChecked ? true : null);
+        }));
+        builder.CloseElement();
+        builder.OpenElement(sequence++, "span");
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+}

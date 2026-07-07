@@ -1,9 +1,328 @@
 @page "/trips"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Forms
+@using StripedBassFishingTool.Web.Services.FishingLogs
+@using StripedBassFishingTool.Web.ViewModels.FishingLogs
+@using StripedBassFishingTool.Web.ViewModels.Knowledge
+@inject FishingTripService FishingTripService
 
 <PageTitle>Fishing Trips</PageTitle>
 
-<h1>Fishing Trips</h1>
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Fishing Log</p>
+        <h1>Fishing Trips</h1>
+        <p class="text-muted page-intro">
+            Search historical outings by water, time of year, conditions, structure, forage, and tactics.
+        </p>
+    </div>
 
-<p class="text-muted">
-    Log trips, sessions, conditions, forage observations, techniques used, and catches.
-</p>
+    <div class="page-actions">
+        <a class="btn btn-primary" href="trips/new">
+            New Trip
+        </a>
+    </div>
+</section>
+
+@if (_isLoading)
+{
+    <div class="state-card">
+        <h2>Loading trips...</h2>
+        <p class="text-muted">Reading fishing history and condition lookups from PostgreSQL.</p>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Could not load fishing trips.</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+}
+else
+{
+    <section class="filter-panel">
+        <div class="filter-panel-header">
+            <div>
+                <h2>Match Historical Conditions</h2>
+                <p class="text-muted">Use these filters to find past trips that resemble the conditions you are seeing now.</p>
+            </div>
+
+            <button type="button" class="btn btn-outline-secondary" @onclick="ClearFiltersAsync" disabled="@(!_filter.HasActiveFilters)">
+                Clear
+            </button>
+        </div>
+
+        <div class="filter-grid">
+            <div class="form-field">
+                <label for="bodyOfWater">Body of Water</label>
+                <InputSelect id="bodyOfWater" class="form-select" @bind-Value="_filter.BodyOfWaterId">
+                    <option value="">Any water</option>
+                    @foreach (var option in _lookups.BodiesOfWater)
+                    {
+                        <option value="@option.Id">@option.Name</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="form-field">
+                <label for="month">Time of Year</label>
+                <InputSelect id="month" class="form-select" @bind-Value="_filter.MonthId">
+                    <option value="">Any month</option>
+                    @foreach (var option in _lookups.Months)
+                    {
+                        <option value="@option.Id">@option.Name</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="form-field">
+                <label for="dateFrom">From</label>
+                <InputDate id="dateFrom" class="form-control" @bind-Value="_filter.DateFrom" />
+            </div>
+
+            <div class="form-field">
+                <label for="dateTo">To</label>
+                <InputDate id="dateTo" class="form-control" @bind-Value="_filter.DateTo" />
+            </div>
+
+            @RenderLookupSelect("Water Temperature", "tempBand", _lookups.WaterTemperatureBands, _filter.WaterTemperatureBandId, value => _filter.WaterTemperatureBandId = value)
+            @RenderLookupSelect("Water Clarity", "clarity", _lookups.WaterClarities, _filter.WaterClarityId, value => _filter.WaterClarityId = value)
+            @RenderLookupSelect("Weather", "weather", _lookups.WeatherPatterns, _filter.WeatherPatternId, value => _filter.WeatherPatternId = value)
+            @RenderLookupSelect("Wind", "wind", _lookups.WindConditions, _filter.WindConditionId, value => _filter.WindConditionId = value)
+            @RenderLookupSelect("Light", "light", _lookups.LightConditions, _filter.LightConditionId, value => _filter.LightConditionId = value)
+            @RenderLookupSelect("Moon", "moon", _lookups.MoonPhases, _filter.MoonPhaseId, value => _filter.MoonPhaseId = value)
+            @RenderLookupSelect("Structure", "structure", _lookups.StructureTypes, _filter.StructureTypeId, value => _filter.StructureTypeId = value)
+            @RenderLookupSelect("Technique", "technique", _lookups.Techniques, _filter.TechniqueId, value => _filter.TechniqueId = value)
+            @RenderLookupSelect("Forage", "forage", _lookups.ForageSpecies, _filter.ForageSpeciesId, value => _filter.ForageSpeciesId = value)
+
+            <div class="form-field">
+                <label for="success">Minimum Success</label>
+                <InputSelect id="success" class="form-select" @bind-Value="_filter.MinimumSuccessRating">
+                    <option value="">Any rating</option>
+                    <option value="5">5 - Best trips</option>
+                    <option value="4">4+</option>
+                    <option value="3">3+</option>
+                    <option value="2">2+</option>
+                    <option value="1">1+</option>
+                </InputSelect>
+            </div>
+        </div>
+
+        <div class="filter-actions">
+            <button type="button" class="btn btn-primary" @onclick="ApplyFiltersAsync" disabled="@_isFiltering">
+                @(_isFiltering ? "Filtering..." : "Apply Filters")
+            </button>
+        </div>
+    </section>
+
+    <section class="summary-grid">
+        <div class="summary-card">
+            <span class="summary-label">Matching Trips</span>
+            <strong>@_trips.Count</strong>
+        </div>
+
+        <div class="summary-card">
+            <span class="summary-label">Sessions</span>
+            <strong>@_trips.Sum(x => x.SessionCount)</strong>
+        </div>
+
+        <div class="summary-card">
+            <span class="summary-label">Catches</span>
+            <strong>@_trips.Sum(x => x.CatchCount)</strong>
+        </div>
+    </section>
+
+    @if (_trips.Count == 0)
+    {
+        <div class="state-card">
+            <h2>No matching trips yet</h2>
+            <p class="text-muted">Create your first trip or broaden the filters to compare more history.</p>
+        </div>
+    }
+    else
+    {
+        <section class="trip-grid">
+            @foreach (var trip in _trips)
+            {
+                <a class="trip-card" href="@($"trips/{trip.FishingTripId}")">
+                    <div class="trip-card-header">
+                        <div>
+                            <span class="trip-date">@trip.TripDate.ToString("MMM d, yyyy")</span>
+                            <h2>@trip.Title</h2>
+                            <p class="source-line">
+                                <span>@trip.BodyOfWaterName</span>
+                                @if (!string.IsNullOrWhiteSpace(trip.State))
+                                {
+                                    <span>, @trip.State</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(trip.TimeRange))
+                                {
+                                    <span> &middot; @trip.TimeRange</span>
+                                }
+                            </p>
+                        </div>
+
+                        <span class="confidence-pill confidence-@(trip.OverallSuccessRating ?? 3)">
+                            @trip.SuccessLabel
+                        </span>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(trip.Summary))
+                    {
+                        <p class="knowledge-summary">@trip.Summary</p>
+                    }
+
+                    <div class="trip-stats">
+                        <span>@trip.SessionCount session@(trip.SessionCount == 1 ? "" : "s")</span>
+                        <span>@trip.CatchCount catch@(trip.CatchCount == 1 ? "" : "es")</span>
+                        @if (trip.BestLengthInches.HasValue)
+                        {
+                            <span>Best @trip.BestLengthInches.Value.ToString("0.#") in</span>
+                        }
+                    </div>
+
+                    <div class="metadata-section">
+                        @RenderChipGroup("Locations", trip.Locations)
+                        @RenderChipGroup("Water", trip.TemperatureBands.Concat(trip.WaterClarities).ToList())
+                        @RenderChipGroup("Weather", trip.WeatherPatterns)
+                        @RenderChipGroup("Light", trip.LightConditions)
+                        @RenderChipGroup("Structure", trip.Structures)
+                        @RenderChipGroup("Techniques", trip.Techniques)
+                        @RenderChipGroup("Forage", trip.ForageSpecies)
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(trip.LessonsLearned))
+                    {
+                        <div class="lesson-strip">
+                            @trip.LessonsLearned
+                        </div>
+                    }
+                </a>
+            }
+        </section>
+    }
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isFiltering;
+    private string? _errorMessage;
+    private FishingTripLookupViewModel _lookups = new();
+    private FishingTripFilterViewModel _filter = new();
+    private IReadOnlyList<FishingTripCardViewModel> _trips = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _lookups = await FishingTripService.GetLookupsAsync();
+            _trips = await FishingTripService.GetTripCardsAsync(_filter);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        _isFiltering = true;
+        _errorMessage = null;
+
+        try
+        {
+            _trips = await FishingTripService.GetTripCardsAsync(_filter);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isFiltering = false;
+        }
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _filter = new FishingTripFilterViewModel();
+        await ApplyFiltersAsync();
+    }
+
+    private static RenderFragment RenderLookupSelect(
+        string label,
+        string id,
+        IReadOnlyList<LookupOptionViewModel> options,
+        int? selectedValue,
+        Action<int?> setValue) => builder =>
+    {
+        var sequence = 0;
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "form-field");
+        builder.OpenElement(sequence++, "label");
+        builder.AddAttribute(sequence++, "for", id);
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+        builder.OpenElement(sequence++, "select");
+        builder.AddAttribute(sequence++, "id", id);
+        builder.AddAttribute(sequence++, "class", "form-select");
+        builder.AddAttribute(sequence++, "value", selectedValue?.ToString() ?? string.Empty);
+        builder.AddAttribute(sequence++, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(setValue.Target ?? new object(), args =>
+        {
+            var value = args.Value?.ToString();
+            setValue(int.TryParse(value, out var parsedValue) ? parsedValue : null);
+        }));
+        builder.OpenElement(sequence++, "option");
+        builder.AddAttribute(sequence++, "value", string.Empty);
+        builder.AddContent(sequence++, $"Any {label.ToLowerInvariant()}");
+        builder.CloseElement();
+
+        foreach (var option in options)
+        {
+            builder.OpenElement(sequence++, "option");
+            builder.AddAttribute(sequence++, "value", option.Id.ToString());
+            builder.AddContent(sequence++, option.Name);
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private static RenderFragment RenderChipGroup(string label, IReadOnlyList<string> values) => builder =>
+    {
+        if (values.Count == 0)
+        {
+            return;
+        }
+
+        var sequence = 0;
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "chip-group");
+
+        builder.OpenElement(sequence++, "span");
+        builder.AddAttribute(sequence++, "class", "chip-label");
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "chips");
+
+        foreach (var value in values)
+        {
+            builder.OpenElement(sequence++, "span");
+            builder.AddAttribute(sequence++, "class", "chip");
+            builder.AddContent(sequence++, value);
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+}
