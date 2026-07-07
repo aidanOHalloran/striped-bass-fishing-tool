@@ -1,0 +1,284 @@
+@page "/trips/locations/{FishingLocationId:long}/edit"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Forms
+@using StripedBassFishingTool.Web.Services.FishingLogs
+@using StripedBassFishingTool.Web.ViewModels.FishingLogs
+@inject FishingTripService FishingTripService
+@inject FishingLocationService FishingLocationService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit Fishing Location</PageTitle>
+
+<section class="page-header">
+    <div>
+        <a class="back-link" href="/trips/locations">&larr; Back to Locations</a>
+        <p class="eyebrow">Fishing Location</p>
+        <h1>Edit Location</h1>
+        <p class="text-muted page-intro">
+            Update reusable location details used by trip and session logs.
+        </p>
+    </div>
+</section>
+
+@if (_isLoading)
+{
+    <div class="state-card">
+        <h2>Loading location...</h2>
+        <p class="text-muted">Preparing location fields.</p>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">
+        <strong>Could not load the location.</strong>
+        <pre>@_errorMessage</pre>
+    </div>
+}
+else if (_notFound)
+{
+    <div class="state-card">
+        <h2>Location not found</h2>
+        <p class="text-muted">The requested fishing location does not exist.</p>
+        <a class="btn btn-primary" href="/trips/locations">Back to Locations</a>
+    </div>
+}
+else
+{
+    <EditForm Model="_form" OnValidSubmit="HandleValidSubmitAsync" OnInvalidSubmit="HandleInvalidSubmit" FormName="location-edit-form">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="entry-form-shell">
+            <section class="entry-form-main">
+                <div class="form-card">
+                    <h2>Location</h2>
+
+                    <div class="form-grid two-column">
+                        <div class="form-field">
+                            <label for="bodyOfWater">Body of Water</label>
+                            <InputSelect id="bodyOfWater" class="form-select" @bind-Value="_form.BodyOfWaterId">
+                                <option value="">Select water</option>
+                                @foreach (var option in _lookups.BodiesOfWater)
+                                {
+                                    <option value="@option.Id">@option.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => _form.BodyOfWaterId" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="name">Name</label>
+                            <InputText id="name" class="form-control" @bind-Value="_form.Name" />
+                            <ValidationMessage For="() => _form.Name" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="generalArea">Specific Area</label>
+                            <InputText id="generalArea" class="form-control" @bind-Value="_form.GeneralArea" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="structure">Default Structure</label>
+                            <InputSelect id="structure" class="form-select" @bind-Value="_form.DefaultStructureTypeId">
+                                <option value="">None</option>
+                                @foreach (var option in _lookups.StructureTypes)
+                                {
+                                    <option value="@option.Id">@option.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="latitude">Latitude</label>
+                            <InputNumber id="latitude" class="form-control" @bind-Value="_form.Latitude" />
+                            <ValidationMessage For="() => _form.Latitude" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="longitude">Longitude</label>
+                            <InputNumber id="longitude" class="form-control" @bind-Value="_form.Longitude" />
+                            <ValidationMessage For="() => _form.Longitude" />
+                        </div>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="description">Description</label>
+                        <InputTextArea id="description" class="form-control" rows="3" @bind-Value="_form.Description" />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="notes">Notes</label>
+                        <InputTextArea id="notes" class="form-control" rows="4" @bind-Value="_form.Notes" />
+                    </div>
+
+                    <label class="checkbox-row settings-toggle">
+                        <InputCheckbox @bind-Value="_form.IsSensitiveSpot" />
+                        <span>Sensitive spot</span>
+                    </label>
+                </div>
+            </section>
+
+            <aside class="entry-form-sidebar">
+                <div class="form-actions-card">
+                    @if (_validationDebugMessage is not null)
+                    {
+                        <div class="alert alert-warning">
+                            <strong>Validation issue.</strong>
+                            <pre>@_validationDebugMessage</pre>
+                        </div>
+                    }
+
+                    @if (_saveErrorMessage is not null)
+                    {
+                        <div class="alert alert-danger">
+                            <strong>Save failed.</strong>
+                            <pre>@_saveErrorMessage</pre>
+                        </div>
+                    }
+
+                    <button type="submit" class="btn btn-primary w-100" disabled="@_isSaving">
+                        @(_isSaving ? "Saving..." : "Save Changes")
+                    </button>
+
+                    <a class="btn btn-outline-secondary w-100" href="/trips/locations">
+                        Cancel
+                    </a>
+                </div>
+
+                <div class="form-actions-card danger-zone">
+                    <h2>Delete Location</h2>
+                    <p class="text-muted">
+                        This location is used by @_sessionCount session@(_sessionCount == 1 ? "" : "s").
+                        Deleting it will keep those sessions but remove their location link.
+                    </p>
+
+                    <label class="checkbox-row">
+                        <InputCheckbox @bind-Value="_confirmDelete" />
+                        <span>Confirm delete</span>
+                    </label>
+
+                    @if (_deleteErrorMessage is not null)
+                    {
+                        <div class="alert alert-danger">
+                            <strong>Delete failed.</strong>
+                            <pre>@_deleteErrorMessage</pre>
+                        </div>
+                    }
+
+                    <button type="button" class="btn btn-danger w-100" disabled="@(!_confirmDelete || _isDeleting)" @onclick="HandleDeleteAsync">
+                        @(_isDeleting ? "Deleting..." : "Delete Location")
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public long FishingLocationId { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private bool _isDeleting;
+    private bool _confirmDelete;
+    private bool _notFound;
+    private int _sessionCount;
+    private string? _errorMessage;
+    private string? _saveErrorMessage;
+    private string? _deleteErrorMessage;
+    private string? _validationDebugMessage;
+    private FishingTripLookupViewModel _lookups = new();
+    private FishingLocationFormViewModel _form = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _lookups = await FishingTripService.GetLookupsAsync();
+            var form = await FishingLocationService.GetLocationFormAsync(FishingLocationId);
+
+            if (form is null)
+            {
+                _notFound = true;
+                return;
+            }
+
+            _form = form;
+            _sessionCount = await FishingLocationService.GetSessionCountAsync(FishingLocationId);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleValidSubmitAsync()
+    {
+        _isSaving = true;
+        _saveErrorMessage = null;
+        _validationDebugMessage = null;
+
+        try
+        {
+            var updated = await FishingLocationService.UpdateLocationAsync(FishingLocationId, _form);
+
+            if (!updated)
+            {
+                _notFound = true;
+                return;
+            }
+
+            NavigationManager.NavigateTo("/trips/locations");
+        }
+        catch (Exception ex)
+        {
+            _saveErrorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task HandleDeleteAsync()
+    {
+        if (!_confirmDelete)
+        {
+            return;
+        }
+
+        _isDeleting = true;
+        _deleteErrorMessage = null;
+
+        try
+        {
+            await FishingLocationService.DeleteLocationAsync(FishingLocationId);
+            NavigationManager.NavigateTo("/trips/locations");
+        }
+        catch (Exception ex)
+        {
+            _deleteErrorMessage = ex.ToString();
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+
+    private void HandleInvalidSubmit(EditContext editContext)
+    {
+        var validationMessages = editContext.GetValidationMessages().ToList();
+
+        _validationDebugMessage = validationMessages.Count == 0
+            ? "The form is invalid, but no validation messages were returned."
+            : string.Join(Environment.NewLine, validationMessages);
+    }
+}

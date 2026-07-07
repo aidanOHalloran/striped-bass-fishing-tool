@@ -37,6 +37,7 @@ builder.Services.AddScoped<KnowledgeEntrySeedWriter>();
 
 // Fishing log services
 builder.Services.AddScoped<FishingTripService>();
+builder.Services.AddScoped<FishingLocationService>();
 
 // Reference data services
 builder.Services.AddSingleton<ReferenceTableRegistry>();
