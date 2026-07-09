@@ -1275,6 +1275,8 @@ h1:focus {
 .theme-dark h2,
 .theme-dark h3,
 .theme-dark .page-header h1,
+.theme-dark .filter-panel-header h2,
+.theme-dark .section-heading-row h2,
 .theme-dark .trip-card-header h2,
 .theme-dark .trip-card-header h3,
 .theme-dark .reference-card h2,
@@ -1288,10 +1290,15 @@ h1:focus {
 .theme-dark .source-line,
 .theme-dark .knowledge-summary,
 .theme-dark .dashboard-card p,
+.theme-dark .detail-summary-panel p,
+.theme-dark .detail-body p,
 .theme-dark .reference-card p,
 .theme-dark .reference-record-card p,
 .theme-dark .profile-summary,
-.theme-dark .field-help {
+.theme-dark .field-help,
+.theme-dark .form-text,
+.theme-dark .text-secondary,
+.theme-dark .text-body-secondary {
     color: #a7b7cc !important;
 }
 
@@ -1303,10 +1310,13 @@ h1:focus {
 .theme-dark .profile-preview-label,
 .theme-dark .section-heading-row span,
 .theme-dark .snapshot-list dt,
+.theme-dark .detail-list dt,
+.theme-dark .reference-record-card dt,
 .theme-dark .detail-summary-panel h2,
 .theme-dark .detail-body h2,
 .theme-dark .side-card h2,
-.theme-dark .form-card h2 {
+.theme-dark .form-card h2,
+.theme-dark .checkbox-group h3 {
     color: #8fb6d6;
 }
 
@@ -1349,16 +1359,23 @@ h1:focus {
 .theme-dark .chip,
 .theme-dark .trip-stats span,
 .theme-dark .profile-avatar,
-.theme-dark .checkbox-pill {
+.theme-dark .checkbox-pill,
+.theme-dark .reference-count {
     background: #223149;
     border-color: #364965;
     color: #dbe4ef;
 }
 
+.theme-dark .checkbox-pill:hover {
+    background: #2f3f56;
+    border-color: #5f83a5;
+}
+
 .theme-dark .form-control,
 .theme-dark .form-select,
 .theme-dark textarea,
-.theme-dark input {
+.theme-dark input,
+.theme-dark .form-check-input {
     background-color: #0f172a;
     border-color: #3e526d;
     color: #f8fafc;
@@ -1374,6 +1391,7 @@ h1:focus {
 .theme-dark .page-range-fields label,
 .theme-dark .checkbox-row,
 .theme-dark .detail-list dd,
+.theme-dark .reference-record-card dd,
 .theme-dark .snapshot-list dd,
 .theme-dark .observation-badge {
     color: #dbe4ef;
@@ -1382,7 +1400,9 @@ h1:focus {
 .theme-dark .detail-header,
 .theme-dark .knowledge-card-footer,
 .theme-dark .checkbox-group,
-.theme-dark .snapshot-list div {
+.theme-dark .snapshot-list div,
+.theme-dark .detail-list div,
+.theme-dark .reference-record-card dl div {
     border-color: #2f3f56;
 }
 
@@ -1400,6 +1420,22 @@ h1:focus {
 .theme-dark .btn-outline-secondary:hover {
     background: #2f3f56;
     color: #f8fafc;
+}
+
+.theme-dark .btn-outline-primary {
+    color: #8ec5ff;
+    border-color: #4f83b5;
+}
+
+.theme-dark .btn-outline-primary:hover {
+    background: #17384a;
+    color: #f8fafc;
+    border-color: #8ec5ff;
+}
+
+.theme-dark .required-marker,
+.theme-dark .validation-message {
+    color: #ffb4ab;
 }
 
 .theme-dark .confidence-pill,
