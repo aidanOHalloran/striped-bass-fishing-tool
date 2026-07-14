@@ -21,6 +21,22 @@ main {
     align-items: center;
 }
 
+.theme-dark .profile-username {
+    color: #8fb6d6;;
+}
+
+.theme-dark .profile-summary {
+    color: #8fb6d6;;
+}
+
+.theme-dark .profile-greeting {
+    color: #8fb6d6;
+}
+
+.theme-dark .profile-summary strong {
+    color: #8fb6d6;;
+}
+
     .top-row ::deep a, .top-row ::deep .btn-link {
         white-space: nowrap;
         margin-left: 1.5rem;
